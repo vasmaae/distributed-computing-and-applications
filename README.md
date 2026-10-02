@@ -1,1 +1,1 @@
-# distributed-computing-and-applications
+# Distributed computing and applications

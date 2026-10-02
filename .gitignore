@@ -26,7 +26,12 @@ go.work.sum
 
 # env file
 .env
+.env.docker
 
 # Editor/IDE
-# .idea/
+.idea/
+bin/
 # .vscode/
+
+# Default go build output
+/app
