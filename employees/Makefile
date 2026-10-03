@@ -29,7 +29,7 @@ install-golangci-lint:
 	fi
 
 
-lint: install-golangci-lint
+lint: install-golangci-lint install-swag
 	@$(SWAG) fmt
 	@$(GOLANGCI_LINT) run ./... --config=.golangci.yml --fix
 
