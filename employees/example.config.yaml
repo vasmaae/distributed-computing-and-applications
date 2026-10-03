@@ -1,0 +1,12 @@
+database:
+  host: "localhost"
+  port: "5432"
+  username: "postgres"
+  password: "postgres"
+  database: "app"
+  ssl_mode: "disable"
+
+http:
+  host: "localhost"
+  port: "8080"
+  swagger_prefix: ""

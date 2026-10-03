@@ -1,0 +1,56 @@
+basePath: /api/v1
+definitions:
+  dto.EmployeeResponse:
+    properties:
+      birth_date:
+        type: string
+      fio:
+        type: string
+      id:
+        type: string
+      is_fired:
+        type: boolean
+    type: object
+  dto.ReportResponse:
+    properties:
+      employees:
+        items:
+          $ref: '#/definitions/dto.EmployeeResponse'
+        type: array
+      is_fired:
+        type: integer
+      total:
+        type: integer
+    type: object
+  response.ErrorResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for report management
+  title: Reports API
+  version: "1.0"
+paths:
+  /reports/employees-report:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ReportResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get employees report
+      tags:
+      - reports
+swagger: "2.0"
