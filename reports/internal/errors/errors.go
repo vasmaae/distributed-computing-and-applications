@@ -4,6 +4,4 @@ import (
 	"errors"
 )
 
-var (
-	ErrInvalidFIO = errors.New("fio is invalid")
-)
+var ErrInvalidFIO = errors.New("fio is invalid")

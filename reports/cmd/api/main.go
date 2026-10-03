@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,7 +15,7 @@ import (
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/config"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler"
 	rh "github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/report"
-	rr "github.com/vasmaae/distributed-computing-and-applications/reports/internal/repository/report"
+	er "github.com/vasmaae/distributed-computing-and-applications/reports/internal/repository/employee"
 	rs "github.com/vasmaae/distributed-computing-and-applications/reports/internal/service/report"
 )
 
@@ -28,20 +27,19 @@ import (
 //	@BasePath		/api/v1
 func main() {
 	cfg := config.MustLoad()
-	ctx := context.Background()
 
-	if err := run(ctx, cfg); err != nil { //nolint:staticcheck
+	if err := run(cfg); err != nil { //nolint:staticcheck
 		log.Fatal(err)
 	}
 }
 
-func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
+func run(cfg *config.Config) error { //nolint:staticcheck
 	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	repo := rr.NewRepository(db)
+	repo := er.NewRepository(db)
 	svc := rs.NewService(repo)
 	h := rh.NewHandler(svc)
 
