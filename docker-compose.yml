@@ -13,6 +13,20 @@ services:
       postgres:
         condition: service_healthy
 
+  reports-service:
+    build:
+      context: ./reports
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    env_file:
+      - reports/.env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:18-alpine
     restart: unless-stopped
@@ -40,6 +54,7 @@ services:
       - ./gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - employees-service
+      - reports-service
       - postgres
 
 volumes:
