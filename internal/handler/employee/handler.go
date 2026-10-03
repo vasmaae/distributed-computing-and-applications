@@ -49,7 +49,12 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	employee, err := h.s.GetByID(r.Context(), id)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "internal server error")
+		switch {
+		case errors.Is(err, errs.ErrEmployeeNotFound):
+			response.WriteError(w, http.StatusNotFound, err.Error())
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
@@ -101,13 +106,13 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	err = h.s.Create(r.Context(), employee.FIO, birthDate)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidBirthDate) ||
-			errors.Is(err, errs.ErrInvalidFIO) {
+		switch {
+		case errors.Is(err, errs.ErrInvalidBirthDate) ||
+			errors.Is(err, errs.ErrInvalidFIO):
 			response.WriteError(w, http.StatusBadRequest, err.Error())
-			return
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
-
-		response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -147,14 +152,15 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.s.Update(r.Context(), id, employee.FIO, birthDate)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidBirthDate) ||
-			errors.Is(err, errs.ErrInvalidFIO) ||
-			errors.Is(err, errs.ErrEmployeeNotFound) {
+		switch {
+		case errors.Is(err, errs.ErrEmployeeNotFound):
+			response.WriteError(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, errs.ErrInvalidBirthDate) ||
+			errors.Is(err, errs.ErrInvalidFIO):
 			response.WriteError(w, http.StatusBadRequest, err.Error())
-			return
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
-
-		response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -179,12 +185,12 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.s.Delete(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, errs.ErrEmployeeNotFound) {
+		switch {
+		case errors.Is(err, errs.ErrEmployeeNotFound):
 			response.WriteError(w, http.StatusNotFound, err.Error())
-			return
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
-
-		response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
