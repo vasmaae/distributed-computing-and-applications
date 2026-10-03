@@ -2,8 +2,10 @@ package report
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
+	errs "github.com/vasmaae/distributed-computing-and-applications/reports/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/dto"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/response"
@@ -35,7 +37,14 @@ func NewHandler(s Service) *Handler {
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.s.GetEmployeesReport(r.Context())
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "internal server error")
+		switch {
+		case errors.Is(err, errs.ErrEmployeesClient):
+			response.WriteError(w, http.StatusFailedDependency, "failed to fetch report")
+		case errors.Is(err, errs.ErrParseEmployee):
+			response.WriteError(w, http.StatusFailedDependency, "failed to parse employees")
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
