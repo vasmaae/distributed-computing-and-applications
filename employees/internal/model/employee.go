@@ -4,7 +4,7 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/vasmaae/distributed-computing-and-applications/internal/errors"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 )
 
 type Employee struct {

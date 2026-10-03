@@ -5,8 +5,8 @@ import (
 	"time"
 	"uuid"
 
-	handler "github.com/vasmaae/distributed-computing-and-applications/internal/handler/employee"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/model"
+	handler "github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/employee"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/model"
 )
 
 type Repository interface {

@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  dto.CreateEmployeeRequest:
+  dto.EmployeeRequest:
     properties:
       birth_date:
         type: string
@@ -17,13 +17,6 @@ definitions:
         type: string
       is_fired:
         type: boolean
-    type: object
-  dto.UpdateEmployeeRequest:
-    properties:
-      birth_date:
-        type: string
-      fio:
-        type: string
     type: object
   response.ErrorResponse:
     properties:
@@ -65,7 +58,7 @@ paths:
         name: employee
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateEmployeeRequest'
+          $ref: '#/definitions/dto.EmployeeRequest'
       produces:
       - application/json
       responses:
@@ -153,7 +146,7 @@ paths:
         name: employee
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateEmployeeRequest'
+          $ref: '#/definitions/dto.EmployeeRequest'
       produces:
       - application/json
       responses:

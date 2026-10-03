@@ -1,4 +1,4 @@
-module github.com/vasmaae/distributed-computing-and-applications
+module github.com/vasmaae/distributed-computing-and-applications/employees
 
 go 1.27.0
 

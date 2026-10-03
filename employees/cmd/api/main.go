@@ -13,13 +13,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	_ "github.com/vasmaae/distributed-computing-and-applications/docs"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/config"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/handler"
-	eh "github.com/vasmaae/distributed-computing-and-applications/internal/handler/employee"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/migrations"
-	er "github.com/vasmaae/distributed-computing-and-applications/internal/repository/employee"
-	es "github.com/vasmaae/distributed-computing-and-applications/internal/service/employee"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/docs"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/config"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler"
+	eh "github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/employee"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/migrations"
+	er "github.com/vasmaae/distributed-computing-and-applications/employees/internal/repository/employee"
+	es "github.com/vasmaae/distributed-computing-and-applications/employees/internal/service/employee"
 )
 
 // main
@@ -55,6 +55,8 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 
 	router := chi.NewRouter()
 	handler.RegisterRoutes(router, h)
+
+	docs.SwaggerInfo.BasePath = cfg.HTTP.SwaggerPrefix + docs.SwaggerInfo.BasePath
 	router.Handle("/swagger/*",
 		httpSwagger.Handler(
 			httpSwagger.URL("/swagger/doc.json"),
@@ -62,7 +64,7 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 	)
 
 	server := &http.Server{
-		Addr:         cfg.HTTP.Host + ":" + cfg.HTTP.Port,
+		Addr:         fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port),
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,

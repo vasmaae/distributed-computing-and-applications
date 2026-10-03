@@ -7,10 +7,10 @@ import (
 
 	"gorm.io/gorm"
 
-	errs "github.com/vasmaae/distributed-computing-and-applications/internal/errors"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/model"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/repository/entity"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/service/employee"
+	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/model"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/repository/entity"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/service/employee"
 )
 
 var _ employee.Repository = (*Repository)(nil)

@@ -60,7 +60,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateEmployeeRequest"
+                            "$ref": "#/definitions/dto.EmployeeRequest"
                         }
                     }
                 ],
@@ -156,7 +156,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateEmployeeRequest"
+                            "$ref": "#/definitions/dto.EmployeeRequest"
                         }
                     }
                 ],
@@ -228,7 +228,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CreateEmployeeRequest": {
+        "dto.EmployeeRequest": {
             "type": "object",
             "properties": {
                 "birth_date": {
@@ -253,17 +253,6 @@ const docTemplate = `{
                 },
                 "is_fired": {
                     "type": "boolean"
-                }
-            }
-        },
-        "dto.UpdateEmployeeRequest": {
-            "type": "object",
-            "properties": {
-                "birth_date": {
-                    "type": "string"
-                },
-                "fio": {
-                    "type": "string"
                 }
             }
         },

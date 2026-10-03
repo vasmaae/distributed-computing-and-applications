@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vasmaae/distributed-computing-and-applications/internal/errors"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 )
 
 var fioRegexp = regexp.MustCompile(

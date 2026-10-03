@@ -8,12 +8,12 @@ import (
 	"time"
 	"uuid"
 
-	errs "github.com/vasmaae/distributed-computing-and-applications/internal/errors"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/handler"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/dto"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/request"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/response"
-	"github.com/vasmaae/distributed-computing-and-applications/internal/model"
+	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/dto"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/request"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/response"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/model"
 )
 
 type Service interface {
@@ -92,13 +92,13 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 //	@Tags		employees
 //	@Accept		json
 //	@Produce	json
-//	@Param		employee	body		dto.CreateEmployeeRequest	true	"Employee data"
+//	@Param		employee	body		dto.EmployeeRequest	true	"Employee data"
 //	@Success	201			{object}	dto.EmployeeResponse
 //	@Failure	400			{object}	response.ErrorResponse
 //	@Failure	500			{object}	response.ErrorResponse
 //	@Router		/employees [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var employee dto.CreateEmployeeRequest
+	var employee dto.EmployeeRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&employee); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "invalid request body")
@@ -132,15 +132,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 //	@Tags		employees
 //	@Accept		json
 //	@Produce	json
-//	@Param		id			path		string						true	"Employee ID"
-//	@Param		employee	body		dto.UpdateEmployeeRequest	true	"Employee data"
+//	@Param		id			path		string				true	"Employee ID"
+//	@Param		employee	body		dto.EmployeeRequest	true	"Employee data"
 //	@Success	200			{object}	dto.EmployeeResponse
 //	@Failure	400			{object}	response.ErrorResponse
 //	@Failure	404			{object}	response.ErrorResponse
 //	@Failure	500			{object}	response.ErrorResponse
 //	@Router		/employees/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	var employee dto.UpdateEmployeeRequest
+	var employee dto.EmployeeRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&employee); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "invalid request body")

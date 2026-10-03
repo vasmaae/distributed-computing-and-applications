@@ -1,3 +1,7 @@
 # Editor/IDE
 .idea/
 bin/
+
+# env file
+*/.env
+*/*.yaml

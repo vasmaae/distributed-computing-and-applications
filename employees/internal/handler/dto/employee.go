@@ -3,15 +3,10 @@ package dto
 import (
 	"time"
 
-	"github.com/vasmaae/distributed-computing-and-applications/internal/model"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/model"
 )
 
-type CreateEmployeeRequest struct {
-	FIO       string `json:"fio"`
-	BirthDate string `json:"birth_date"`
-}
-
-type UpdateEmployeeRequest struct {
+type EmployeeRequest struct {
 	FIO       string `json:"fio"`
 	BirthDate string `json:"birth_date"`
 }

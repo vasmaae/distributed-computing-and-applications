@@ -17,8 +17,9 @@ type Config struct {
 		SSLMode  string `yaml:"ssl_mode" env:"DATABASE_SSL_MODE"`
 	} `yaml:"database"`
 	HTTP struct {
-		Host string `yaml:"host" env:"HTTP_HOST"`
-		Port string `yaml:"port" env:"HTTP_PORT"`
+		Host          string `yaml:"host" env:"HTTP_HOST"`
+		Port          string `yaml:"port" env:"HTTP_PORT"`
+		SwaggerPrefix string `yaml:"swagger_prefix" env:"HTTP_SWAGGER_PREFIX"`
 	} `yaml:"http"`
 }
 
