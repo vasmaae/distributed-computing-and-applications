@@ -30,14 +30,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.EmployeeResponse"
+                                "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse"
                             }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -60,7 +60,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.EmployeeRequest"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeRequest"
                         }
                     }
                 ],
@@ -68,19 +68,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.EmployeeResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -108,25 +108,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.EmployeeResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -156,7 +156,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.EmployeeRequest"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeRequest"
                         }
                     }
                 ],
@@ -164,25 +164,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.EmployeeResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -208,19 +208,50 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reports/employees-report": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Get employees reports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.ReportResponse"
+                        }
+                    },
+                    "424": {
+                        "description": "Failed Dependency",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -228,18 +259,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.EmployeeRequest": {
-            "type": "object",
-            "properties": {
-                "birth_date": {
-                    "type": "string"
-                },
-                "fio": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.EmployeeResponse": {
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.EmployeeResponse": {
             "type": "object",
             "properties": {
                 "birth_date": {
@@ -256,7 +276,52 @@ const docTemplate = `{
                 }
             }
         },
-        "response.ErrorResponse": {
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.ReportResponse": {
+            "type": "object",
+            "properties": {
+                "employees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.EmployeeResponse"
+                    }
+                },
+                "is_fired": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeRequest": {
+            "type": "object",
+            "properties": {
+                "birth_date": {
+                    "type": "string"
+                },
+                "fio": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse": {
+            "type": "object",
+            "properties": {
+                "birth_date": {
+                    "type": "string"
+                },
+                "fio": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_fired": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {

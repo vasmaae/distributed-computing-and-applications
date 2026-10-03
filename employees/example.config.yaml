@@ -10,3 +10,7 @@ http:
   host: "localhost"
   port: "8080"
   swagger_prefix: ""
+
+reports_client:
+  host: "localhost"
+  port: "8080"

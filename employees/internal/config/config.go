@@ -21,6 +21,10 @@ type Config struct {
 		Port          string `yaml:"port" env:"HTTP_PORT"`
 		SwaggerPrefix string `yaml:"swagger_prefix" env:"HTTP_SWAGGER_PREFIX"`
 	} `yaml:"http"`
+	ReportsClient struct {
+		Host string `yaml:"host" env:"REPORTS_CLIENT_HOST"`
+		Port string `yaml:"port" env:"REPORTS_CLIENT_PORT"`
+	} `yaml:"reports_client"`
 }
 
 func MustLoad() *Config {
@@ -43,4 +47,8 @@ func (c *Config) DSN() string {
 		c.Database.Username, c.Database.Password,
 		c.Database.Host, c.Database.Port,
 		c.Database.Database, c.Database.SSLMode)
+}
+
+func (c *Config) ReportsClientURL() string {
+	return fmt.Sprintf("http://%s:%s", c.ReportsClient.Host, c.ReportsClient.Port)
 }

@@ -1,6 +1,17 @@
 basePath: /api/v1
 definitions:
-  dto.EmployeeResponse:
+  dto.ReportResponse:
+    properties:
+      employees:
+        items:
+          $ref: '#/definitions/internal_handler_dto.EmployeeResponse'
+        type: array
+      is_fired:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler_dto.EmployeeResponse:
     properties:
       birth_date:
         type: string
@@ -10,17 +21,6 @@ definitions:
         type: string
       is_fired:
         type: boolean
-    type: object
-  dto.ReportResponse:
-    properties:
-      employees:
-        items:
-          $ref: '#/definitions/dto.EmployeeResponse'
-        type: array
-      is_fired:
-        type: integer
-      total:
-        type: integer
     type: object
   response.ErrorResponse:
     properties:

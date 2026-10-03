@@ -47,8 +47,8 @@ swagger: install-swag
 	@$(SWAG) init \
 		-g $(SWAG_MAIN) \
 		-o $(SWAG_DOCS_DIR) \
-		--parseInternal
-
+		--parseInternal \
+		--parseDependencyLevel 1
 
 tests:
 	@go test ./internal/... -v

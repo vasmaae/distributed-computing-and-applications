@@ -45,7 +45,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.EmployeeResponse": {
+        "dto.ReportResponse": {
+            "type": "object",
+            "properties": {
+                "employees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler_dto.EmployeeResponse"
+                    }
+                },
+                "is_fired": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handler_dto.EmployeeResponse": {
             "type": "object",
             "properties": {
                 "birth_date": {
@@ -59,23 +76,6 @@ const docTemplate = `{
                 },
                 "is_fired": {
                     "type": "boolean"
-                }
-            }
-        },
-        "dto.ReportResponse": {
-            "type": "object",
-            "properties": {
-                "employees": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.EmployeeResponse"
-                    }
-                },
-                "is_fired": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
                 }
             }
         },

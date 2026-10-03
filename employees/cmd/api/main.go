@@ -8,15 +8,18 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/vasmaae/distributed-computing-and-applications/employees/docs"
+	rc "github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/report"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/config"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler"
 	eh "github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/employee"
+	rh "github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/report"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/migrations"
 	er "github.com/vasmaae/distributed-computing-and-applications/employees/internal/repository/employee"
 	es "github.com/vasmaae/distributed-computing-and-applications/employees/internal/service/employee"
@@ -49,12 +52,18 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 
 	repo := er.NewRepository(db)
 	svc := es.NewService(repo)
-	h := eh.NewHandler(svc)
+	employeeHandler := eh.NewHandler(svc)
+
+	client := rc.NewClient(cfg.ReportsClientURL())
+	reportHandler := rh.NewHandler(client)
 
 	log.Println("started")
 
 	router := chi.NewRouter()
-	handler.RegisterRoutes(router, h)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	handler.RegisterRoutes(router, employeeHandler, reportHandler)
 
 	docs.SwaggerInfo.BasePath = cfg.HTTP.SwaggerPrefix + docs.SwaggerInfo.BasePath
 	router.Handle("/swagger/*",
