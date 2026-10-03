@@ -22,10 +22,12 @@ import (
 	es "github.com/vasmaae/distributed-computing-and-applications/internal/service/employee"
 )
 
-// @title Employee API
-// @version 1.0
-// @description API for employee management
-// @BasePath /api/v1
+// main
+//
+//	@title			Employee API
+//	@version		1.0
+//	@description	API for employee management
+//	@BasePath		/api/v1
 func main() {
 	cfg := config.MustLoad()
 	ctx := context.Background()

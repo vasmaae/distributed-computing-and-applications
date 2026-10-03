@@ -96,10 +96,15 @@ formatters: # Форматтеры кода (проверка стиля)
   settings:
     gofumpt:
       extra:
-        group-params: true # Включить дополнительные строгие правила (например, удаление лишних пустых строк)
+        group-params: true
+        clothe-returns: true
+        balance-calls: true
     gci:
       sections: # Порядок группировки импортов
         - Standard  # Стандартная библиотека
         - Default   # Сторонние зависимости
         - Prefix(github.com/vasmaae/distributed-computing-and-applications/)  # Локальные импорты проекта
       no-inline-comments: false  # Разрешить комментарии после импортов (true — запретит)
+  exclusions:
+    paths:
+      - '(^|/)mocks/'

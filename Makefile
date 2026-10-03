@@ -1,13 +1,9 @@
 GOLANGCI_LINT_VERSION := v2.14.0
-GCI_VERSION := v0.14.0
-GOFUMPT_VERSION := v0.12.0
 SWAG_VERSION := v1.16.6
 
 BIN_DIR := $(CURDIR)/bin
 
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-GCI := $(BIN_DIR)/gci
-GOFUMPT := $(BIN_DIR)/gofumpt
 SWAG := $(BIN_DIR)/swag
 
 SWAG_MAIN := ./cmd/api/main.go
@@ -16,8 +12,6 @@ MIGRATIONS_DIR := internal/migrations/sql
 GORM_MODELS_PATH := ./internal/repository/entity
 
 .PHONY: \
-	install-formatters \
-	format \
 	install-golangci-lint \
 	lint \
 	install-swag \
@@ -25,29 +19,6 @@ GORM_MODELS_PATH := ./internal/repository/entity
 	tests \
 	e2e-tests \
 	migration
-
-
-install-formatters:
-	@mkdir -p $(BIN_DIR)
-	@if [ ! -f "$(GOFUMPT)" ]; then \
-		echo "📦 Устанавливаем gofumpt $(GOFUMPT_VERSION)..."; \
-		GOBIN=$(BIN_DIR) go install mvdan.cc/gofumpt@$(GOFUMPT_VERSION); \
-	fi
-	@if [ ! -f "$(GCI)" ]; then \
-		echo "📦 Устанавливаем gci $(GCI_VERSION)..."; \
-		GOBIN=$(BIN_DIR) go install github.com/daixiang0/gci@$(GCI_VERSION); \
-	fi
-
-
-format: install-formatters
-	@echo "🧼 Форматируем через gofumpt..."
-	@find . -type f -name '*.go' ! -path '*/mocks/*' -exec $(GOFUMPT) -extra -w {} +
-	@echo "🎯 Сортируем импорты через gci..."
-	@find . -type f -name '*.go' ! -path '*/mocks/*' -exec $(GCI) write \
-		-s standard \
-		-s default \
-		-s "prefix(github.com/vasmaae/distributed-computing-and-applications/)" \
-		{} +
 
 
 install-golangci-lint:
@@ -59,6 +30,7 @@ install-golangci-lint:
 
 
 lint: install-golangci-lint
+	@$(SWAG) fmt
 	@$(GOLANGCI_LINT) run ./... --config=.golangci.yml --fix
 
 

@@ -1,4 +1,4 @@
-package handler
+package employee
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"uuid"
 
 	errs "github.com/vasmaae/distributed-computing-and-applications/internal/errors"
+	"github.com/vasmaae/distributed-computing-and-applications/internal/handler"
 	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/dto"
 	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/request"
 	"github.com/vasmaae/distributed-computing-and-applications/internal/handler/response"
@@ -18,10 +19,12 @@ import (
 type Service interface {
 	GetByID(ctx context.Context, id uuid.UUID) (model.Employee, error)
 	GetAll(ctx context.Context) ([]model.Employee, error)
-	Create(ctx context.Context, fio string, birthDate time.Time) error
-	Update(ctx context.Context, id uuid.UUID, fio string, birthDate time.Time) error
+	Create(ctx context.Context, fio string, birthDate time.Time) (model.Employee, error)
+	Update(ctx context.Context, id uuid.UUID, fio string, birthDate time.Time) (model.Employee, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
+
+var _ handler.EmployeeHandler = (*Handler)(nil)
 
 type Handler struct {
 	s Service
@@ -32,14 +35,16 @@ func NewHandler(s Service) *Handler {
 }
 
 // GetByID
-// @Summary Get employee by ID
-// @Tags employees
-// @Produce JSON
-// @Param id path string true "Employee ID"
-// @Success 200 {object} dto.EmployeeResponse
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /employees/{id} [get]
+//
+//	@Summary	Get employee by ID
+//	@Tags		employees
+//	@Produce	json
+//	@Param		id	path		string	true	"Employee ID"
+//	@Success	200	{object}	dto.EmployeeResponse
+//	@Failure	400	{object}	response.ErrorResponse
+//	@Failure	404	{object}	response.ErrorResponse
+//	@Failure	500	{object}	response.ErrorResponse
+//	@Router		/employees/{id} [get]
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(request.ReadValue(r, "id"))
 	if err != nil {
@@ -63,12 +68,13 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAll
-// @Summary Get all employees
-// @Tags employees
-// @Produce JSON
-// @Success 200 {array} dto.EmployeeResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /employees [get]
+//
+//	@Summary	Get all employees
+//	@Tags		employees
+//	@Produce	json
+//	@Success	200	{array}		dto.EmployeeResponse
+//	@Failure	500	{object}	response.ErrorResponse
+//	@Router		/employees [get]
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	employees, err := h.s.GetAll(r.Context())
 	if err != nil {
@@ -81,15 +87,16 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // Create
-// @Summary Create employee
-// @Tags employees
-// @Accept JSON
-// @Produce JSON
-// @Param employee body dto.CreateEmployeeRequest true "Employee data"
-// @Success 201 {object} dto.CreateEmployeeRequest
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /employees [post]
+//
+//	@Summary	Create employee
+//	@Tags		employees
+//	@Accept		json
+//	@Produce	json
+//	@Param		employee	body		dto.CreateEmployeeRequest	true	"Employee data"
+//	@Success	201			{object}	dto.EmployeeResponse
+//	@Failure	400			{object}	response.ErrorResponse
+//	@Failure	500			{object}	response.ErrorResponse
+//	@Router		/employees [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var employee dto.CreateEmployeeRequest
 
@@ -104,7 +111,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.s.Create(r.Context(), employee.FIO, birthDate)
+	createdEmployee, err := h.s.Create(r.Context(), employee.FIO, birthDate)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrInvalidBirthDate) ||
@@ -116,20 +123,22 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteResponse(w, http.StatusCreated, employee)
+	response.WriteResponse(w, http.StatusCreated, dto.ToEmployeeResponse(createdEmployee))
 }
 
 // Update
-// @Summary Update employee
-// @Tags employees
-// @Accept JSON
-// @Produce JSON
-// @Param id path string true "Employee ID"
-// @Param employee body dto.UpdateEmployeeRequest true "Employee data"
-// @Success 200 {object} dto.UpdateEmployeeRequest
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /employees/{id} [put]
+//
+//	@Summary	Update employee
+//	@Tags		employees
+//	@Accept		json
+//	@Produce	json
+//	@Param		id			path		string						true	"Employee ID"
+//	@Param		employee	body		dto.UpdateEmployeeRequest	true	"Employee data"
+//	@Success	200			{object}	dto.EmployeeResponse
+//	@Failure	400			{object}	response.ErrorResponse
+//	@Failure	404			{object}	response.ErrorResponse
+//	@Failure	500			{object}	response.ErrorResponse
+//	@Router		/employees/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	var employee dto.UpdateEmployeeRequest
 
@@ -150,7 +159,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.s.Update(r.Context(), id, employee.FIO, birthDate)
+	updatedEmployee, err := h.s.Update(r.Context(), id, employee.FIO, birthDate)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrEmployeeNotFound):
@@ -164,18 +173,19 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteResponse(w, http.StatusOK, employee)
+	response.WriteResponse(w, http.StatusOK, dto.ToEmployeeResponse(updatedEmployee))
 }
 
 // Delete
-// @Summary Delete employee
-// @Tags employees
-// @Param id path string true "Employee ID"
-// @Success 204
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 404 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Router /employees/{id} [delete]
+//
+//	@Summary	Delete employee
+//	@Tags		employees
+//	@Param		id	path	string	true	"Employee ID"
+//	@Success	204
+//	@Failure	400	{object}	response.ErrorResponse
+//	@Failure	404	{object}	response.ErrorResponse
+//	@Failure	500	{object}	response.ErrorResponse
+//	@Router		/employees/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(request.ReadValue(r, "id"))
 	if err != nil {

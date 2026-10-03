@@ -10,7 +10,10 @@ import (
 	errs "github.com/vasmaae/distributed-computing-and-applications/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/internal/model"
 	"github.com/vasmaae/distributed-computing-and-applications/internal/repository/entity"
+	"github.com/vasmaae/distributed-computing-and-applications/internal/service/employee"
 )
+
+var _ employee.Repository = (*Repository)(nil)
 
 type Repository struct {
 	db *gorm.DB
