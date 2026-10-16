@@ -25,7 +25,8 @@ services:
       - reports/.env
 
     depends_on:
-      - files-service
+      kafka-init:
+        condition: service_completed_successfully
 
 
   files-service:
@@ -41,6 +42,8 @@ services:
     depends_on:
       seaweedfs:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
 
   postgres:
@@ -95,6 +98,31 @@ services:
       timeout: 3s
       retries: 30
 
+  kafka:
+    image: apache/kafka:4.1.0
+    restart: unless-stopped
+    env_file:
+      - queue/.env
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  kafka-init:
+    image: apache/kafka:4.1.0
+    env_file:
+      - queue/.env
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'exec /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic "$${QUEUE_TOPIC}" --partitions 1 --replication-factor 1 --config max.message.bytes=9437184'
+    depends_on:
+      kafka:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   seaweedfs_data:
+  kafka_data:

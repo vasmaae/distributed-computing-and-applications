@@ -5,6 +5,7 @@ import io
 import json
 import subprocess
 import urllib.request
+import time
 
 
 def main():
@@ -13,14 +14,21 @@ def main():
         report = json.load(response)
     assert report["total"] == len(report["employees"]), report
     assert report["is_fired"] == sum(e["is_fired"] for e in report["employees"]), report
-    stored = subprocess.check_output([
-        "docker", "compose", "exec", "-T", "files-service", "wget", "-qO-",
-        "http://localhost:8080/api/v1/files/" + report["file_id"],
-    ], timeout=20).decode()
+    for attempt in range(30):
+        downloaded = subprocess.run([
+            "docker", "compose", "exec", "-T", "files-service", "wget", "-qO-",
+            "http://localhost:8080/api/v1/files/" + report["file_id"],
+        ], capture_output=True, timeout=20, check=False)
+        if downloaded.returncode == 0:
+            break
+        time.sleep(0.5)
+    else:
+        raise AssertionError("queued CSV was not saved within 15 seconds")
+    stored = downloaded.stdout.decode()
     rows = list(csv.DictReader(io.StringIO(stored)))
     assert len(rows) == report["total"], rows
     assert {row["id"] for row in rows} == {e["id"] for e in report["employees"]}
-    print("OK: gateway → employees → reports → files → S3; CSV matches report")
+    print("OK: gateway → employees → reports → Kafka → files → S3; CSV matches report")
 
 
 if __name__ == "__main__":

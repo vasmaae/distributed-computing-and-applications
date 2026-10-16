@@ -12,6 +12,11 @@ import (
 )
 
 type Config struct {
+	Queue struct {
+		Brokers string `yaml:"brokers" env:"QUEUE_BROKERS" env-required:"true"`
+		Topic   string `yaml:"topic" env:"QUEUE_TOPIC" env-default:"reports.files"`
+		Group   string `yaml:"group" env:"QUEUE_GROUP" env-default:"files-service"`
+	} `yaml:"queue"`
 	HTTP struct {
 		Host string `yaml:"host" env:"HTTP_HOST"`
 		Port string `yaml:"port" env:"HTTP_PORT"`

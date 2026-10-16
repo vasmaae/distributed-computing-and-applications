@@ -16,10 +16,10 @@ type Config struct {
 		Host string `yaml:"host" env:"EMPLOYEES_CLIENT_HOST"`
 		Port string `yaml:"port" env:"EMPLOYEES_CLIENT_PORT"`
 	} `yaml:"employees_client"`
-	FilesClient struct {
-		Host string `yaml:"host" env:"FILES_CLIENT_HOST"`
-		Port string `yaml:"port" env:"FILES_CLIENT_PORT"`
-	} `yaml:"files_client"`
+	Queue struct {
+		Brokers string `yaml:"brokers" env:"QUEUE_BROKERS" env-required:"true"`
+		Topic   string `yaml:"topic" env:"QUEUE_TOPIC" env-default:"reports.files"`
+	} `yaml:"queue"`
 }
 
 func MustLoad() *Config {
@@ -39,8 +39,4 @@ func MustLoad() *Config {
 
 func (c *Config) EmployeesClientURL() string {
 	return fmt.Sprintf("http://%s:%s", c.EmployeesClient.Host, c.EmployeesClient.Port)
-}
-
-func (c *Config) FilesClientURL() string {
-	return fmt.Sprintf("http://%s:%s", c.FilesClient.Host, c.FilesClient.Port)
 }
