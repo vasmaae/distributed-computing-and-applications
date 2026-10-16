@@ -16,6 +16,10 @@ type Config struct {
 		Host string `yaml:"host" env:"EMPLOYEES_CLIENT_HOST"`
 		Port string `yaml:"port" env:"EMPLOYEES_CLIENT_PORT"`
 	} `yaml:"employees_client"`
+	FilesClient struct {
+		Host string `yaml:"host" env:"FILES_CLIENT_HOST"`
+		Port string `yaml:"port" env:"FILES_CLIENT_PORT"`
+	} `yaml:"files_client"`
 }
 
 func MustLoad() *Config {
@@ -35,4 +39,8 @@ func MustLoad() *Config {
 
 func (c *Config) EmployeesClientURL() string {
 	return fmt.Sprintf("http://%s:%s", c.EmployeesClient.Host, c.EmployeesClient.Port)
+}
+
+func (c *Config) FilesClientURL() string {
+	return fmt.Sprintf("http://%s:%s", c.FilesClient.Host, c.FilesClient.Port)
 }

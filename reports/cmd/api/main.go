@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	ec "github.com/vasmaae/distributed-computing-and-applications/reports/internal/client/employee"
+	fc "github.com/vasmaae/distributed-computing-and-applications/reports/internal/client/file"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/config"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler"
 	rh "github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/report"
@@ -32,7 +33,8 @@ func main() {
 
 func run(cfg *config.Config) error { //nolint:staticcheck
 	client := ec.NewClient(cfg.EmployeesClientURL())
-	svc := rs.NewService(client)
+	filesClient := fc.NewClient(cfg.FilesClientURL())
+	svc := rs.NewService(client, filesClient)
 	h := rh.NewHandler(svc)
 
 	log.Println("started")
@@ -50,7 +52,5 @@ func run(cfg *config.Config) error { //nolint:staticcheck
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  10 * time.Second,
 	}
-	log.Fatal(server.ListenAndServe())
-
-	return nil
+	return server.ListenAndServe()
 }

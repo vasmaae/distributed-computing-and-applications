@@ -21,16 +21,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ReportResponse"
-                            }
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_dto.ReportResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_response.ErrorResponse"
                         }
                     }
                 }
@@ -38,24 +35,7 @@
         }
     },
     "definitions": {
-        "dto.ReportResponse": {
-            "type": "object",
-            "properties": {
-                "employees": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler_dto.EmployeeResponse"
-                    }
-                },
-                "is_fired": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "internal_handler_dto.EmployeeResponse": {
+        "github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_dto.EmployeeResponse": {
             "type": "object",
             "properties": {
                 "birth_date": {
@@ -72,7 +52,27 @@
                 }
             }
         },
-        "response.ErrorResponse": {
+        "github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_dto.ReportResponse": {
+            "type": "object",
+            "properties": {
+                "employees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_dto.EmployeeResponse"
+                    }
+                },
+                "file_id": {
+                    "type": "string"
+                },
+                "is_fired": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_reports_internal_handler_response.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {

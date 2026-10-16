@@ -285,6 +285,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.EmployeeResponse"
                     }
                 },
+                "file_id": {
+                    "type": "string"
+                },
                 "is_fired": {
                     "type": "integer"
                 },

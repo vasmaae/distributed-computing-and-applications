@@ -7,6 +7,7 @@ import (
 )
 
 type ReportResponse struct {
+	FileID    string             `json:"file_id"`
 	Employees []EmployeeResponse `json:"employees"`
 	Total     int                `json:"total"`
 	IsFired   int                `json:"is_fired"`
@@ -40,6 +41,7 @@ func ToEmployeeResponses(es []model.Employee) []EmployeeResponse {
 
 func ToReportResponse(e model.Report) ReportResponse {
 	return ReportResponse{
+		FileID:    e.FileID.String(),
 		Employees: ToEmployeeResponses(e.Employees),
 		Total:     e.Total,
 		IsFired:   e.IsFired,

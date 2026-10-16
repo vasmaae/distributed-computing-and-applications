@@ -31,7 +31,7 @@ func NewHandler(s Service) *Handler {
 //	@Summary	Get employees report
 //	@Tags		reports
 //	@Produce	json
-//	@Success	200	{array}		dto.ReportResponse
+//	@Success	200	{object}	dto.ReportResponse
 //	@Failure	500	{object}	response.ErrorResponse
 //	@Router		/reports/employees-report [get]
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {

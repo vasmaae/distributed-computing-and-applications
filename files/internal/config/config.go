@@ -1,0 +1,63 @@
+package config
+
+import (
+	"context"
+	"log"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/ilyakaznacheev/cleanenv"
+)
+
+type Config struct {
+	HTTP struct {
+		Host string `yaml:"host" env:"HTTP_HOST"`
+		Port string `yaml:"port" env:"HTTP_PORT"`
+	} `yaml:"http"`
+	S3 struct {
+		Endpoint        string `yaml:"endpoint" env:"S3_ENDPOINT"`
+		Bucket          string `yaml:"bucket" env:"S3_BUCKET"`
+		Region          string `yaml:"region" env:"S3_AWS_REGION"`
+		AccessKeyId     string `yaml:"access_key_id" env:"S3_AWS_ACCESS_KEY_ID"`
+		SecretAccessKey string `yaml:"secret_access_key" env:"S3_SECRET_ACCESS_KEY"`
+	} `yaml:"s3"`
+}
+
+func MustLoad() *Config {
+	var cfg Config
+
+	if err := cleanenv.ReadConfig("config.yaml", &cfg); err == nil {
+		return &cfg
+	}
+
+	if err := cleanenv.ReadEnv(&cfg); err == nil {
+		return &cfg
+	}
+
+	log.Fatal("config not found")
+	return nil
+}
+
+func (c *Config) S3Client() *awss3.Client {
+	sdkCfg, err := awsconfig.LoadDefaultConfig(
+		context.Background(),
+		awsconfig.WithRegion(c.S3.Region),
+		awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				c.S3.AccessKeyId,
+				c.S3.SecretAccessKey,
+				"",
+			),
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return awss3.NewFromConfig(sdkCfg, func(o *awss3.Options) {
+		o.BaseEndpoint = aws.String(c.S3.Endpoint)
+		o.UsePathStyle = true
+	})
+}

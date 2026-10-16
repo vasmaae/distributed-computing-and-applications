@@ -1,6 +1,9 @@
 package model
 
+import "uuid"
+
 type Report struct {
+	FileID    uuid.UUID
 	Employees []Employee
 	Total     int
 	IsFired   int
