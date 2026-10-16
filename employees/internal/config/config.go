@@ -25,6 +25,10 @@ type Config struct {
 		Host string `yaml:"host" env:"REPORTS_CLIENT_HOST"`
 		Port string `yaml:"port" env:"REPORTS_CLIENT_PORT"`
 	} `yaml:"reports_client"`
+	FilesClient struct {
+		Host string `yaml:"host" env:"FILES_CLIENT_HOST"`
+		Port string `yaml:"port" env:"FILES_CLIENT_PORT"`
+	} `yaml:"files_client"`
 }
 
 func MustLoad() *Config {
@@ -51,4 +55,8 @@ func (c *Config) DSN() string {
 
 func (c *Config) ReportsClientURL() string {
 	return fmt.Sprintf("http://%s:%s", c.ReportsClient.Host, c.ReportsClient.Port)
+}
+
+func (c *Config) FilesClientURL() string {
+	return fmt.Sprintf("http://%s:%s", c.FilesClient.Host, c.FilesClient.Port)
 }

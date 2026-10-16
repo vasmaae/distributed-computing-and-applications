@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/vasmaae/distributed-computing-and-applications/employees/docs"
+	fc "github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/file"
 	rc "github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/report"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/config"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler"
@@ -55,7 +56,8 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 	employeeHandler := eh.NewHandler(svc)
 
 	client := rc.NewClient(cfg.ReportsClientURL())
-	reportHandler := rh.NewHandler(client)
+	filesClient := fc.NewClient(cfg.FilesClientURL())
+	reportHandler := rh.NewHandler(client, filesClient)
 
 	log.Println("started")
 

@@ -16,6 +16,7 @@ type EmployeeHandler interface {
 
 type ReportHandler interface {
 	GetEmployeesReport(w http.ResponseWriter, r *http.Request)
+	GetFile(w http.ResponseWriter, r *http.Request)
 }
 
 func RegisterRoutes(r chi.Router, employeeHandler EmployeeHandler, reportHandler ReportHandler) {
@@ -29,6 +30,7 @@ func RegisterRoutes(r chi.Router, employeeHandler EmployeeHandler, reportHandler
 		})
 		r.Route("/reports", func(r chi.Router) {
 			r.Get("/employees-report", reportHandler.GetEmployeesReport)
+			r.Get("/files/{id}", reportHandler.GetFile)
 		})
 	})
 }

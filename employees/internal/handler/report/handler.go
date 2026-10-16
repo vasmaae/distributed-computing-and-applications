@@ -3,9 +3,15 @@ package report
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
+	"time"
+	"uuid"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/dto"
+	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/file"
 	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/response"
 )
@@ -14,12 +20,60 @@ type Client interface {
 	GetEmployeesReport(ctx context.Context) (dto.ReportResponse, error)
 }
 
-type Handler struct {
-	c Client
+type FileClient interface {
+	GetAsync(ctx context.Context, id uuid.UUID) <-chan file.Result
 }
 
-func NewHandler(c Client) *Handler {
-	return &Handler{c: c}
+type Handler struct {
+	c     Client
+	files FileClient
+}
+
+func NewHandler(c Client, files FileClient) *Handler {
+	return &Handler{c: c, files: files}
+}
+
+// GetFile
+//
+//	@Summary	Download a stored CSV report through a Go future
+//	@Tags		reports
+//	@Produce	text/csv
+//	@Param		id	path		string	true	"File ID returned by the report endpoint"
+//	@Success	200	{file}		file
+//	@Failure	400	{object}	response.ErrorResponse
+//	@Failure	404	{object}	response.ErrorResponse
+//	@Failure	502	{object}	response.ErrorResponse
+//	@Failure	504	{object}	response.ErrorResponse
+//	@Router		/reports/files/{id} [get]
+func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid file id")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	select {
+	case <-ctx.Done():
+		response.WriteError(w, http.StatusGatewayTimeout, "file request timed out")
+	case result := <-h.files.GetAsync(ctx, id):
+		if result.Err != nil {
+			switch {
+			case errors.Is(result.Err, errs.ErrFileNotFound):
+				response.WriteError(w, http.StatusNotFound, "file not found or still queued")
+			case errors.Is(result.Err, context.DeadlineExceeded):
+				response.WriteError(w, http.StatusGatewayTimeout, "file request timed out")
+			default:
+				response.WriteError(w, http.StatusBadGateway, "failed to fetch file")
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+id.String()+`.csv"`)
+		if _, err := w.Write(result.Data); err != nil {
+			log.Printf("failed to write CSV: %v", err)
+		}
+	}
 }
 
 // GetEmployeesReport

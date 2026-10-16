@@ -213,4 +213,38 @@ paths:
       summary: Get employees reports
       tags:
       - reports
+  /reports/files/{id}:
+    get:
+      parameters:
+      - description: File ID returned by the report endpoint
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+        "504":
+          description: Gateway Timeout
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      summary: Download a stored CSV report through a Go future
+      tags:
+      - reports
 swagger: "2.0"
