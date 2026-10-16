@@ -5,12 +5,16 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 	"uuid"
 
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type FileStorage interface {
@@ -48,6 +52,13 @@ func consume(ctx context.Context, reader messageReader, files FileStorage) error
 }
 
 func process(ctx context.Context, msg kafka.Message, files FileStorage) error {
+	carrier := propagation.MapCarrier{}
+	for _, header := range msg.Headers {
+		carrier[header.Key] = string(header.Value)
+	}
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
+	ctx, span := otel.Tracer("files").Start(ctx, "reports.files process", trace.WithSpanKind(trace.SpanKindConsumer))
+	defer span.End()
 	id, err := uuid.Parse(string(msg.Key))
 	contentType := ""
 	for _, header := range msg.Headers {
@@ -56,13 +67,17 @@ func process(ctx context.Context, msg kafka.Message, files FileStorage) error {
 		}
 	}
 	if err != nil || id == uuid.Nil() || contentType != "text/csv" || len(msg.Value) == 0 || len(msg.Value) > 8<<20 {
-		log.Print("skipped invalid report message")
+		slog.WarnContext(ctx, "skipped invalid report message", "trace_id", span.SpanContext().TraceID().String())
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	if err := files.Save(ctx, id, bytes.NewReader(msg.Value)); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to save report")
+		slog.ErrorContext(ctx, "save queued report", "file_id", id.String(), "trace_id", span.SpanContext().TraceID().String(), "error", err)
 		return fmt.Errorf("save queued report: %w", err)
 	}
+	slog.InfoContext(ctx, "saved queued report", "file_id", id.String(), "trace_id", span.SpanContext().TraceID().String())
 	return nil
 }

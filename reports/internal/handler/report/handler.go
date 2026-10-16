@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	errs "github.com/vasmaae/distributed-computing-and-applications/reports/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/dto"
@@ -37,6 +38,7 @@ func NewHandler(s Service) *Handler {
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.s.GetEmployeesReport(r.Context())
 	if err != nil {
+		telemetry.LogError(r.Context(), "generate report", err)
 		switch {
 		case errors.Is(err, errs.ErrEmployeesClient):
 			response.WriteError(w, http.StatusFailedDependency, "failed to fetch report")

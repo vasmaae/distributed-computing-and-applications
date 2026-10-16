@@ -14,6 +14,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
+	appserver "github.com/vasmaae/distributed-computing-and-applications/common/server"
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/docs"
 	fc "github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/file"
 	rc "github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/report"
@@ -28,10 +31,14 @@ import (
 
 // main
 //
-//	@title			Employee API
-//	@version		1.0
-//	@description	API for employee management
-//	@BasePath		/api/v1
+//	@title						Employee API
+//	@version					1.0
+//	@description				API for employee management
+//	@BasePath					/api/v1
+//
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
 func main() {
 	cfg := config.MustLoad()
 	ctx := context.Background()
@@ -42,6 +49,15 @@ func main() {
 }
 
 func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
+	observer, shutdown, err := telemetry.New(ctx, "employees-service")
+	if err != nil {
+		return err
+	}
+	defer shutdown()
+	authenticator, err := auth.New(cfg.Auth.Secret)
+	if err != nil {
+		return err
+	}
 	if err := migrate(ctx, cfg.DSN()); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}
@@ -63,9 +79,14 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
-	router.Use(middleware.Logger)
+	router.Use(observer.Middleware)
 	router.Use(middleware.Recoverer)
-	handler.RegisterRoutes(router, employeeHandler, reportHandler)
+	router.Post("/auth/login", authenticator.LoginHandler(cfg.Login.Username, cfg.Login.Password))
+	router.Handle("/metrics", observer.Metrics())
+	router.Group(func(r chi.Router) {
+		r.Use(authenticator.Middleware)
+		handler.RegisterRoutes(r, employeeHandler, reportHandler)
+	})
 
 	docs.SwaggerInfo.BasePath = cfg.HTTP.SwaggerPrefix + docs.SwaggerInfo.BasePath
 	router.Handle("/swagger/*",
@@ -81,9 +102,7 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  10 * time.Second,
 	}
-	log.Fatal(server.ListenAndServe())
-
-	return nil
+	return appserver.ListenAndServe(ctx, server)
 }
 
 func migrate(ctx context.Context, dsn string) error {

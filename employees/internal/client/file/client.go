@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 	"uuid"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 )
 
@@ -39,7 +39,7 @@ func (c *Client) get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := telemetry.HTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

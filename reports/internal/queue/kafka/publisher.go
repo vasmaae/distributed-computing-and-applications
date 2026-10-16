@@ -9,6 +9,10 @@ import (
 	"uuid"
 
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Publisher struct {
@@ -28,7 +32,15 @@ func (p *Publisher) Close() error {
 	return p.writer.Close()
 }
 
-func (p *Publisher) Save(ctx context.Context, id uuid.UUID, src io.Reader) error {
+func (p *Publisher) Save(ctx context.Context, id uuid.UUID, src io.Reader) (err error) {
+	ctx, span := otel.Tracer("reports").Start(ctx, "reports.files publish", trace.WithSpanKind(trace.SpanKindProducer))
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to publish report")
+		}
+		span.End()
+	}()
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	body, err := io.ReadAll(io.LimitReader(src, (8<<20)+1))
@@ -38,8 +50,14 @@ func (p *Publisher) Save(ctx context.Context, id uuid.UUID, src io.Reader) error
 	if len(body) == 0 || len(body) > 8<<20 {
 		return fmt.Errorf("CSV must be between 1 byte and 8 MiB")
 	}
+	carrier := propagation.MapCarrier{}
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	headers := []kafka.Header{{Key: "content-type", Value: []byte("text/csv")}}
+	for key, value := range carrier {
+		headers = append(headers, kafka.Header{Key: key, Value: []byte(value)})
+	}
 	return p.writer.WriteMessages(ctx, kafka.Message{
 		Key: []byte(id.String()), Value: body,
-		Headers: []kafka.Header{{Key: "content-type", Value: []byte("text/csv")}},
+		Headers: headers,
 	})
 }

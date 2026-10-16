@@ -1,0 +1,9 @@
+.git/
+.idea/
+**/.env
+**/example.env
+**/config.yaml
+**/example.config.yaml
+**/bin/
+**/*.test
+**/coverage.*

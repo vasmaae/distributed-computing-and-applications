@@ -5,9 +5,12 @@ import (
 	"log"
 
 	"github.com/ilyakaznacheev/cleanenv"
+
+	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
 )
 
 type Config struct {
+	Auth auth.Config `yaml:"auth"`
 	HTTP struct {
 		Host string `yaml:"host" env:"HTTP_HOST"`
 		Port string `yaml:"port" env:"HTTP_PORT"`

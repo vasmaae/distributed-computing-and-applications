@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/dto"
 	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/report"
@@ -23,7 +23,7 @@ func NewClient(url string) *Client {
 }
 
 func (c *Client) GetEmployeesReport(ctx context.Context) (dto.ReportResponse, error) {
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	httpClient := telemetry.HTTPClient()
 
 	req, err := http.NewRequestWithContext(
 		ctx,

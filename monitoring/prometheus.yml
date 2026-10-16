@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: employees
+    static_configs:
+      - targets: [employees-service:8080]
+  - job_name: reports
+    static_configs:
+      - targets: [reports-service:8080]
+  - job_name: files
+    static_configs:
+      - targets: [files-service:8080]

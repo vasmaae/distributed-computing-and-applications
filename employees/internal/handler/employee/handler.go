@@ -38,6 +38,9 @@ func NewHandler(s Service) *Handler {
 //
 //	@Summary	Get employee by ID
 //	@Tags		employees
+//
+//	@Security	BearerAuth
+//
 //	@Produce	json
 //	@Param		id	path		string	true	"Employee ID"
 //	@Success	200	{object}	dto.EmployeeResponse
@@ -71,6 +74,9 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary	Get all employees
 //	@Tags		employees
+//
+//	@Security	BearerAuth
+//
 //	@Produce	json
 //	@Success	200	{array}		dto.EmployeeResponse
 //	@Failure	500	{object}	response.ErrorResponse
@@ -90,6 +96,9 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary	Create employee
 //	@Tags		employees
+//
+//	@Security	BearerAuth
+//
 //	@Accept		json
 //	@Produce	json
 //	@Param		employee	body		dto.EmployeeRequest	true	"Employee data"
@@ -130,6 +139,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary	Update employee
 //	@Tags		employees
+//
+//	@Security	BearerAuth
+//
 //	@Accept		json
 //	@Produce	json
 //	@Param		id			path		string				true	"Employee ID"
@@ -180,6 +192,9 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary	Delete employee
 //	@Tags		employees
+//
+//	@Security	BearerAuth
+//
 //	@Param		id	path	string	true	"Employee ID"
 //	@Success	204
 //	@Failure	400	{object}	response.ErrorResponse

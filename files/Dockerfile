@@ -1,11 +1,14 @@
 FROM golang:1.27-alpine AS builder
 
-WORKDIR /app
+WORKDIR /workspace
 
-COPY go.mod go.sum ./
+COPY common/go.mod common/go.sum ./common/
+COPY files/go.mod files/go.sum ./files/
+WORKDIR /workspace/files
 RUN go mod download
 
-COPY . .
+COPY common ../common
+COPY files .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/api ./cmd/api
 

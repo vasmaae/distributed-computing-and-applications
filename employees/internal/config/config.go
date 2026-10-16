@@ -5,9 +5,16 @@ import (
 	"log"
 
 	"github.com/ilyakaznacheev/cleanenv"
+
+	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
 )
 
 type Config struct {
+	Auth  auth.Config `yaml:"auth"`
+	Login struct {
+		Username string `yaml:"username" env:"AUTH_USERNAME" env-required:"true"`
+		Password string `yaml:"password" env:"AUTH_PASSWORD" env-required:"true"`
+	} `yaml:"login"`
 	Database struct {
 		Host     string `yaml:"host" env:"DATABASE_HOST"`
 		Port     string `yaml:"port" env:"DATABASE_PORT"`

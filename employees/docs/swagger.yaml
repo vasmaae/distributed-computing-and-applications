@@ -70,6 +70,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all employees
       tags:
       - employees
@@ -98,6 +100,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Create employee
       tags:
       - employees
@@ -124,6 +128,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete employee
       tags:
       - employees
@@ -153,6 +159,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get employee by ID
       tags:
       - employees
@@ -190,6 +198,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update employee
       tags:
       - employees
@@ -210,6 +220,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get employees reports
       tags:
       - reports
@@ -244,7 +256,14 @@ paths:
           description: Gateway Timeout
           schema:
             $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Download a stored CSV report through a Go future
       tags:
       - reports
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

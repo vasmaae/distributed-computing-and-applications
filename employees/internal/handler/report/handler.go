@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/dto"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/client/file"
 	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
@@ -37,6 +38,9 @@ func NewHandler(c Client, files FileClient) *Handler {
 //
 //	@Summary	Download a stored CSV report through a Go future
 //	@Tags		reports
+//
+//	@Security	BearerAuth
+//
 //	@Produce	text/csv
 //	@Param		id	path		string	true	"File ID returned by the report endpoint"
 //	@Success	200	{file}		file
@@ -64,6 +68,7 @@ func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
 			case errors.Is(result.Err, context.DeadlineExceeded):
 				response.WriteError(w, http.StatusGatewayTimeout, "file request timed out")
 			default:
+				telemetry.LogError(ctx, "fetch stored report", result.Err)
 				response.WriteError(w, http.StatusBadGateway, "failed to fetch file")
 			}
 			return
@@ -80,6 +85,9 @@ func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary	Get employees reports
 //	@Tags		reports
+//
+//	@Security	BearerAuth
+//
 //	@Produce	json
 //	@Success	200	{object}	dto.ReportResponse
 //	@Failure	424	{object}	response.ErrorResponse
@@ -88,6 +96,7 @@ func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.c.GetEmployeesReport(r.Context())
 	if err != nil {
+		telemetry.LogError(r.Context(), "fetch report", err)
 		if errors.Is(err, errs.ErrReportsClient) {
 			response.WriteError(w, http.StatusFailedDependency, "failed to fetch report")
 			return

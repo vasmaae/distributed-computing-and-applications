@@ -3,15 +3,21 @@ package config
 import (
 	"context"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/ilyakaznacheev/cleanenv"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
+	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
 )
 
 type Config struct {
+	Auth  auth.Config `yaml:"auth"`
 	Queue struct {
 		Brokers string `yaml:"brokers" env:"QUEUE_BROKERS" env-required:"true"`
 		Topic   string `yaml:"topic" env:"QUEUE_TOPIC" env-default:"reports.files"`
@@ -49,6 +55,7 @@ func (c *Config) S3Client() *awss3.Client {
 	sdkCfg, err := awsconfig.LoadDefaultConfig(
 		context.Background(),
 		awsconfig.WithRegion(c.S3.Region),
+		awsconfig.WithHTTPClient(&http.Client{Timeout: 10 * time.Second, Transport: otelhttp.NewTransport(http.DefaultTransport)}),
 		awsconfig.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
 				c.S3.AccessKeyId,

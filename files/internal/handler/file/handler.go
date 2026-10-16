@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	errs "github.com/vasmaae/distributed-computing-and-applications/files/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/files/internal/handler/response"
 )
@@ -44,6 +45,7 @@ func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.s.Save(r.Context(), id, bytes.NewReader(body)); err != nil {
+		telemetry.LogError(r.Context(), "save file", err)
 		response.WriteError(w, http.StatusBadGateway, "failed to save file")
 		return
 	}
@@ -63,6 +65,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		response.WriteError(w, http.StatusBadGateway, "failed to read file")
+		telemetry.LogError(r.Context(), "read file", err)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")

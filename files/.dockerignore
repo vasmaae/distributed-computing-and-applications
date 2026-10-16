@@ -1,5 +1,0 @@
-.env
-config.yaml
-bin/
-*.test
-coverage.*
