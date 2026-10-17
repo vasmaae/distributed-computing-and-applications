@@ -118,7 +118,7 @@ Jaeger хранит трассы в памяти, поэтому перезап�
 | [Jaeger](http://localhost:16686/search) | Трасса HTTP → Kafka → S3 |
 | [Kibana — Discover](http://localhost:5601/app/discover) | Поиск логов всех сервисов по `service`, `level`, `trace_id`, `file_id` |
 
-Kafka UI — [Kafbat UI](https://ui.docs.kafbat.io/overview/getting-started), заранее подключён к `kafka:9092`.
+Kafka UI — [Kafbat UI](https://ui.docs.kafbat.io/overview/getting-started), заранее подключён к трём Kafka-узлам.
 Вход в Grafana — логин и пароль `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`
 из локального `monitoring/.env`. Не используйте пароль приложения вместо пароля Grafana.
 При первом запуске Grafana создаёт учётную запись; изменение `.env` после этого само по себе пароль не меняет.
@@ -320,3 +320,28 @@ volume server, содержащий выбранный CSV, читает CSV с 
 Master, filer и S3 gateway по-прежнему находятся в `seaweedfs`: его отказ прерывает доступ
 к S3. Все контейнеры работают на одном компьютере; это демонстрация распределения процессов
 и данных, а не защита от отказа самого компьютера. Лабораторная №8 не менялась.
+
+## Метрики Kafka и S3 в Grafana
+
+- [Kafka overview](http://localhost:3000/d/kafka): число брокеров в metadata, проблемные
+  партиции, ISR отчётного топика, consumer lag, поступление сообщений и участники consumer group.
+- [S3 / SeaweedFS overview](http://localhost:3000/d/s3): доступность трёх узлов, количество
+  объектов, логический размер и размер с репликами, частота/ошибки/p95 S3-операций,
+  объём томов по узлам и нарушения размещения реплик.
+- [Services overview](http://localhost:3000/d/services): прежний дашборд Go-сервисов;
+  на всех трёх страницах есть ссылки для переключения.
+
+Kafka exporter 1.10 собирает metadata/offsets/ISR из Kafka 4.1. JMX и JVM-метрики не подключены.
+Число брокеров берётся из metadata и может обновляться с задержкой; состояние репликации
+оценивайте также по ISR. Частота поступления сообщений вычисляется по приросту конечных offsets.
+SeaweedFS `mini` отдаёт общий registry master/filer/S3/первого volume server на порту 9324;
+дополнительные volume server — на 9325. Prometheus находит их по общему Docker DNS-алиасу
+`seaweedfs-volume-metrics`, включённому в шаблон. После остановки контейнера его DNS-цель
+исчезает из списка; это не постоянный inventory всех когда-либо запущенных узлов.
+Размеры bucket обновляются периодически; при отсутствии запросов p95 не определён.
+Metrics endpoints не опубликованы на хост. Дашборды и datasource создаются автоматически.
+
+Проверка `python3 scripts/check_metrics.py` создаёт отчёт, выполняет запросы всех панелей через
+Grafana, проверяет четыре инфраструктурные scrape-цели, останавливает один Kafka-узел,
+проверяет снижение ISR до 2 и восстанавливает узел. Для полной проверки приложения:
+`python3 scripts/smoke.py`.

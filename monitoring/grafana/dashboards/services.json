@@ -17,6 +17,24 @@
   },
   "links": [
     {
+      "title": "Services",
+      "url": "http://localhost:3000/d/services",
+      "type": "link",
+      "targetBlank": false
+    },
+    {
+      "title": "Kafka",
+      "url": "http://localhost:3000/d/kafka",
+      "type": "link",
+      "targetBlank": false
+    },
+    {
+      "title": "S3",
+      "url": "http://localhost:3000/d/s3",
+      "type": "link",
+      "targetBlank": false
+    },
+    {
       "title": "Swagger",
       "url": "http://localhost:8080/employees/swagger/index.html",
       "type": "link",

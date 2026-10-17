@@ -69,6 +69,9 @@ x-kafka: &kafka
 x-volume-server: &volume-server
   image: chrislusf/seaweedfs:4.48
   restart: unless-stopped
+  networks:
+    default:
+      aliases: [seaweedfs-volume-metrics]
   depends_on:
     seaweedfs:
       condition: service_healthy
@@ -144,6 +147,8 @@ services:
       - -master.defaultReplication=001
       - -filer.defaultReplicaPlacement=001
       - -volume.max=32
+      - -metricsPort=9324
+      - -metricsIp=0.0.0.0
     restart: unless-stopped
 
     env_file:
@@ -159,13 +164,13 @@ services:
 
   seaweedfs-volume-2:
     <<: *volume-server
-    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-2", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1"]
+    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-2", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1", "-metricsPort=9325"]
     volumes:
       - seaweedfs_volume_2_data:/data
 
   seaweedfs-volume-3:
     <<: *volume-server
-    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-3", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1"]
+    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-3", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1", "-metricsPort=9325"]
     volumes:
       - seaweedfs_volume_3_data:/data
 
@@ -238,6 +243,19 @@ services:
       - kafka-ui/.env
     ports:
       - "127.0.0.1:8081:8080"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.10.0
+    restart: unless-stopped
+    command:
+      - --kafka.server=kafka-1:9092
+      - --kafka.server=kafka-2:9092
+      - --kafka.server=kafka-3:9092
+      - --kafka.version=4.1.0
+      - --refresh.metadata=5s
     depends_on:
       kafka-init:
         condition: service_completed_successfully
