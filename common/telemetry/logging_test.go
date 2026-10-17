@@ -35,7 +35,7 @@ func TestJSONLoggingAndTraceContext(t *testing.T) {
 		if err := json.Unmarshal([]byte(line), &record); err != nil {
 			t.Fatal(err)
 		}
-		if record["service"] != "test-service" || record["time"] == nil || record["msg"] == nil {
+		if record["service"] != "test-service" || record["time"] == nil || record["msg"] == nil || record["instance_id"] != instanceID {
 			t.Fatalf("missing common log fields: %v", record)
 		}
 		if i == 0 && (record["trace_id"] != span.TraceID().String() || record["span_id"] != span.SpanID().String() || record["level"] != "ERROR") {
@@ -66,6 +66,11 @@ func TestHTTPLoggingAndRecovery(t *testing.T) {
 	router.Get("/panic", func(http.ResponseWriter, *http.Request) { panic("boom\nsecond line") })
 	router.Get("/bad", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusBadRequest) })
 	router.Get("/ok", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	health := httptest.NewRecorder()
+	router.ServeHTTP(health, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if health.Code != http.StatusOK || health.Header().Get("X-Service-Instance") != instanceID || output.Len() != 0 {
+		t.Fatal("health check must identify the instance without generating request logs")
+	}
 	for path, status := range map[string]int{"/panic": 500, "/bad": 400, "/ok": 200} {
 		r := httptest.NewRequest(http.MethodGet, path+"?password=secret-value", nil)
 		r.Header.Set("Authorization", "Bearer secret-value")

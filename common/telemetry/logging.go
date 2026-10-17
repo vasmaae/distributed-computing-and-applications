@@ -13,13 +13,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var instanceID, _ = os.Hostname()
+
 // InitLogging runs before configuration loading so startup failures are JSON too.
 func InitLogging(service string) {
 	slog.SetDefault(slog.New(logHandler(os.Stdout, service)))
 }
 
 func logHandler(output io.Writer, service string) slog.Handler {
-	return traceHandler{slog.NewJSONHandler(output, nil).WithAttrs([]slog.Attr{slog.String("service", service)})}
+	return traceHandler{slog.NewJSONHandler(output, nil).WithAttrs([]slog.Attr{slog.String("service", service), slog.String("instance_id", instanceID)})}
 }
 
 type traceHandler struct {

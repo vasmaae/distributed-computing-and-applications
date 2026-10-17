@@ -89,7 +89,7 @@
         {
           "refId": "A",
           "expr": "up{job=~\"$service\"}",
-          "legendFormat": "{{job}}",
+          "legendFormat": "{{job}} / {{instance}}",
           "instant": true,
           "range": false
         }
@@ -348,7 +348,7 @@
         {
           "refId": "A",
           "expr": "process_resident_memory_bytes{job=~\"$service\"}",
-          "legendFormat": "{{job}}",
+          "legendFormat": "{{job}} / {{instance}}",
           "instant": false,
           "range": true
         }

@@ -38,7 +38,7 @@ func New(ctx context.Context, service string) (*Observer, func(), error) {
 	}
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter, sdktrace.WithBatchTimeout(time.Second)),
-		sdktrace.WithResource(resource.NewSchemaless(attribute.String("service.name", service))),
+		sdktrace.WithResource(resource.NewSchemaless(attribute.String("service.name", service), attribute.String("service.instance.id", instanceID))),
 	)
 	otel.SetTracerProvider(provider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
@@ -98,6 +98,11 @@ func (o *Observer) Middleware(next http.Handler) http.Handler {
 	})
 	traced := otelhttp.NewHandler(observed, o.service)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Service-Instance", instanceID)
+		if r.URL.Path == "/healthz" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		if r.URL.Path == "/metrics" {
 			next.ServeHTTP(w, r)
 			return

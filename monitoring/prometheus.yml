@@ -3,11 +3,20 @@ global:
 
 scrape_configs:
   - job_name: employees
-    static_configs:
-      - targets: [employees-service:8080]
+    dns_sd_configs:
+      - names: [employees-backend]
+        type: A
+        port: 8080
+        refresh_interval: 5s
   - job_name: reports
-    static_configs:
-      - targets: [reports-service:8080]
+    dns_sd_configs:
+      - names: [reports-backend]
+        type: A
+        port: 8080
+        refresh_interval: 5s
   - job_name: files
-    static_configs:
-      - targets: [files-service:8080]
+    dns_sd_configs:
+      - names: [files-backend]
+        type: A
+        port: 8080
+        refresh_interval: 5s

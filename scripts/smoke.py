@@ -4,6 +4,7 @@ import base64
 import csv
 import io
 import json
+from collections import Counter
 from pathlib import Path
 import time
 import urllib.error
@@ -53,6 +54,11 @@ def main():
     body, _ = request(BASE + "/api/v1/auth/login", data={"username": settings["AUTH_USERNAME"], "password": settings["AUTH_PASSWORD"]})
     token = json.loads(body)["access_token"]
     request(BASE + "/api/v1/employees", token=token + ".invalid", status=401)
+    instances = set()
+    for _ in range(12):
+        _, headers = request(BASE + "/api/v1/employees", token=token)
+        instances.add(headers.get("X-Service-Instance"))
+    assert None not in instances and len(instances) >= 2, "gateway does not balance employee instances"
     trace_id = uuid.uuid4().hex
     body, _ = request(BASE + "/api/v1/reports/employees-report", token=token, trace_id=trace_id)
     report = json.loads(body)
@@ -88,11 +94,12 @@ def main():
     for _ in range(40):
         body, _ = request("http://localhost:9090/api/v1/targets")
         targets = json.loads(body)["data"]["activeTargets"]
-        if {t["labels"]["job"] for t in targets if t["health"] == "up"} == {"employees", "reports", "files"}:
+        counts = Counter(t["labels"]["job"] for t in targets if t["health"] == "up")
+        if all(counts[job] >= 2 for job in ("employees", "reports", "files")):
             break
         time.sleep(0.5)
     else:
-        raise AssertionError("Prometheus cannot scrape all three services")
+        raise AssertionError("Prometheus cannot scrape two instances of each service")
 
     for _ in range(40):
         try:
@@ -144,7 +151,7 @@ def main():
     for secret in (settings["AUTH_PASSWORD"], settings["JWT_SECRET"], token):
         assert secret not in serialized, "secret leaked into centralized logs"
     for entry in logs:
-        assert entry["@timestamp"] and entry["level"] and entry["span_id"], "log fields missing"
+        assert entry["@timestamp"] and entry["level"] and entry["span_id"] and entry["instance_id"], "log fields missing"
         assert "_jsonparsefailure" not in entry.get("tags", []), "invalid application JSON log"
     body, _ = request("http://localhost:5601/api/data_views/data_view/app-logs")
     assert json.loads(body)["data_view"]["title"] == "app-logs-*", "Kibana data view missing"

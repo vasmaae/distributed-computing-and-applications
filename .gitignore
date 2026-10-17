@@ -5,3 +5,6 @@ bin/
 # env file
 */.env
 */*.yaml
+
+# Python checks
+__pycache__/

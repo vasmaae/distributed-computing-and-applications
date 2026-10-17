@@ -32,7 +32,7 @@ curl http://localhost:8080/employees/api/v1/reports/employees-report
 В ветке №4 скачивание доступно внутри сети (в №7 этот запрос также требует JWT):
 
 ```sh
-docker compose exec -T files-service wget -qO- http://localhost:8080/api/v1/files/FILE_ID
+docker compose exec -T files-1 wget -qO- http://localhost:8080/api/v1/files/FILE_ID
 ```
 
 Проверка: `python3 scripts/smoke.py`. В каждом Go-модуле: `go test ./...`.
@@ -137,7 +137,7 @@ Prometheus и дашборд подключаются через [file provision
 ### Логирование
 
 ```sh
-docker compose logs -f employees-service reports-service files-service
+docker compose logs -f employees-1 employees-2 reports-1 reports-2 files-1 files-2
 python3 scripts/smoke.py
 ```
 
@@ -216,3 +216,36 @@ done
 Основной Compose сохраняет порт PostgreSQL 5432 для локальной разработки.
 Если он занят другим приложением, освободите его или используйте временный Compose override,
 не меняя адрес БД внутри Docker-сети (`postgres:5432`).
+
+## Несколько инстансов: Docker DNS и Nginx
+
+По умолчанию запущено по два инстанса каждого Go-сервиса. Внутри сети адреса
+`http://employees-service`, `http://reports-service`, `http://files-service` ведут на Nginx
+(порт 80), который распределяет HTTP-запросы round-robin. Приложения слушают 8080.
+Внешний адрес Swagger остаётся прежним; публичный listener Nginx отделён от внутреннего.
+Метрики доступны Prometheus напрямую и не открываются через gateway.
+
+Общие настройки инстансов объявлены в шаблонах Compose. Чтобы добавить ещё один,
+добавьте в `services` строку `employees-3: *employees-instance` и выполните
+`docker compose up -d --build employees-3`. Для других типов используются
+`*reports-instance` и `*files-instance`. Шаблон включает общий backend-алиас;
+Nginx обновляет список адресов через Docker DNS каждые 5 секунд без reload.
+Также можно масштабировать один блок: `docker compose up -d --scale employees-1=3`.
+После добавления нового типа приложения ему потребуется отдельный upstream и логический адрес.
+
+Из `employees/example.env` и `reports/example.env` перенесите порты HTTP-клиентов `80`
+в локальные `.env`; секреты сохраняются в прежних игнорируемых файлах.
+Первый переход со старых имён контейнеров: `docker compose up -d --build --remove-orphans`.
+Общая БД, S3 и одинаковые JWT-настройки позволяют обслуживать запрос на любом инстансе.
+Заголовок `X-Service-Instance`, поле JSON `instance_id` и атрибут трассы
+`service.instance.id` показывают конкретный контейнер. Prometheus использует DNS discovery
+для каждого backend, Grafana различает экземпляры в панелях доступности и памяти.
+
+`/healthz` проверяет запуск HTTP-сервера и не создаёт логов/трасс. Docker DNS не фильтрует
+`unhealthy`; Nginx использует пассивное исключение сбоев на 5 секунд. Во время обновления DNS
+или отказа возможен ответ 502/504. Автоматические повторы отключены, поскольку даже GET отчёта
+публикует сообщение Kafka. После удаления инстанса дождитесь обновления DNS.
+Nginx, PostgreSQL и управляющий узел S3 пока остаются отдельными точками отказа.
+
+Проверка балансировки, добавления и остановки инстанса: `python3 scripts/check_instances.py`.
+Скрипт удаляет созданный тестовый контейнер и восстанавливает остановленную реплику.
