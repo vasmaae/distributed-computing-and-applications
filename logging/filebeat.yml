@@ -1,0 +1,31 @@
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      labels.dedot: true
+      templates:
+        - condition.equals:
+            docker.container.labels.distributed.logs: "json"
+          config:
+            - type: filestream
+              id: app-${data.docker.container.id}
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*-json.log*
+              prospector.scanner.check_interval: 1s
+              prospector.scanner.fingerprint.length: 64
+              parsers:
+                - container:
+                    stream: all
+                    format: docker
+              fields_under_root: true
+              fields:
+                source_service: ${data.docker.container.labels.com.docker.compose.service}
+
+queue.disk:
+  max_size: 256MB
+  segment_size: 32MB
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.level: warning
+logging.json: true

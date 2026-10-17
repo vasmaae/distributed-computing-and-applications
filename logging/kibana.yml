@@ -1,0 +1,16 @@
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+telemetry.enabled: false
+
+uiSettings.overrides:
+  defaultRoute: /app/discover
+  defaultColumns: [service, level, message, status, trace_id]
+
+logging:
+  appenders:
+    console:
+      type: console
+      layout:
+        type: json
+  root:
+    appenders: [console]

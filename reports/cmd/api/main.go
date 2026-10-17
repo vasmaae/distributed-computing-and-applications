@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -28,10 +29,12 @@ import (
 //	@description	API for report management
 //	@BasePath		/api/v1
 func main() {
+	telemetry.InitLogging("reports-service")
 	cfg := config.MustLoad()
 
 	if err := run(cfg); err != nil { //nolint:staticcheck
-		log.Fatal(err)
+		slog.Error("service stopped", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -51,12 +54,10 @@ func run(cfg *config.Config) error { //nolint:staticcheck
 	svc := rs.NewService(client, publisher)
 	h := rh.NewHandler(svc)
 
-	log.Println("started")
-
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(observer.Middleware)
-	router.Use(middleware.Recoverer)
+	router.Use(telemetry.Recoverer)
 	router.Handle("/metrics", observer.Metrics())
 	router.Group(func(r chi.Router) {
 		r.Use(authenticator.Middleware)

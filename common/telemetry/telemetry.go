@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -33,7 +32,6 @@ type Observer struct {
 }
 
 func New(ctx context.Context, service string) (*Observer, func(), error) {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("service", service))
 	exporter, err := otlptracehttp.New(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -89,8 +87,14 @@ func (o *Observer) Middleware(next http.Handler) http.Handler {
 		span := trace.SpanFromContext(r.Context())
 		span.SetName(method + " " + route)
 		span.SetAttributes(attribute.String("http.route", route))
-		slog.InfoContext(r.Context(), "http request", "method", method, "route", route, "status", status,
-			"duration_ms", elapsed.Milliseconds(), "trace_id", span.SpanContext().TraceID().String(), "span_id", span.SpanContext().SpanID().String())
+		level := slog.LevelInfo
+		if status >= http.StatusInternalServerError {
+			level = slog.LevelError
+		} else if status >= http.StatusBadRequest {
+			level = slog.LevelWarn
+		}
+		slog.Log(r.Context(), level, "http request", "method", method, "route", route, "status", status,
+			"duration_ms", elapsed.Milliseconds())
 	})
 	traced := otelhttp.NewHandler(observed, o.service)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,5 +115,5 @@ func HTTPClient() *http.Client {
 }
 
 func LogError(ctx context.Context, message string, err error) {
-	slog.ErrorContext(ctx, message, "error", err, "trace_id", trace.SpanContextFromContext(ctx).TraceID().String())
+	slog.ErrorContext(ctx, message, "error", err)
 }

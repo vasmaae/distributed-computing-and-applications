@@ -116,6 +116,7 @@ Jaeger хранит трассы в памяти, поэтому перезап�
 | [Grafana — Services overview](http://localhost:3000/d/services/services-overview) | Состояние и метрики трёх сервисов |
 | [Prometheus Targets](http://localhost:9090/targets) | Проверка, что все сервисы имеют статус UP |
 | [Jaeger](http://localhost:16686/search) | Трасса HTTP → Kafka → S3 |
+| [Kibana — Discover](http://localhost:5601/app/discover) | Поиск логов всех сервисов по `service`, `level`, `trace_id`, `file_id` |
 
 Kafka UI — [Kafbat UI](https://ui.docs.kafbat.io/overview/getting-started), заранее подключён к `kafka:9092`.
 Вход в Grafana — логин и пароль `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`
@@ -140,20 +141,68 @@ docker compose logs -f employees-service reports-service files-service
 python3 scripts/smoke.py
 ```
 
-Логи запросов — JSON с сервисом, маршрутом, статусом, длительностью и `trace_id`.
-Общий модуль `common/telemetry` устанавливает `slog.JSONHandler` для stdout; middleware пишет
-завершение каждого HTTP-запроса, кроме `/metrics`, включая `method`, `route`, `status`,
-`duration_ms`, `trace_id` и `span_id`. Шаблон маршрута не содержит конкретный UUID.
-Прикладные ошибки логируются с уровнем ERROR и идентификатором трассы. Потребитель Kafka
-пишет успешное сохранение с уровнем INFO, повреждённое сообщение — WARN, сбой S3 — ERROR;
-его запись содержит `file_id` и `trace_id`, связывающий обработку с запросом в Jaeger.
-Пароли, JWT и тела запросов не логируются. Docker собирает stdout/stderr контейнеров;
-просмотр — через `docker compose logs`. Централизованное хранилище логов Loki/ELK не настроено:
-Grafana на этом стенде показывает метрики, Jaeger — трассы.
+Все три Go-сервиса (`employees-service`, `reports-service`, `files-service`) пишут в stdout
+по одной JSON-строке на событие. Общий `common/telemetry.InitLogging` вызывается до загрузки
+конфигурации: запуск и ошибки настроек тоже имеют поля `time`, `level`, `msg`, `service`.
+Логи из контекста HTTP/Kafka автоматически получают `trace_id` и `span_id`.
+HTTP middleware добавляет `method`, шаблон `route`, `status`, `duration_ms`: 2xx/3xx — INFO,
+4xx — WARN, 5xx — ERROR. `/metrics` не засоряет логи. Паника обработчика записывается
+как ERROR с `error` и `stack`, затем клиент получает 500.
+
+Ошибки БД логируются на границе HTTP с контекстом трассы. Стандартный вывод GORM отключён,
+чтобы SQL с ФИО и другими значениями не попадал в лог. Прикладные ошибки, ошибки записи ответа
+и HTTP-сервера также используют JSON. Продюсер Kafka пишет `published queued report`,
+потребитель — `saved queued report`; обе записи содержат `file_id` и общий `trace_id`.
+Повреждённое сообщение — WARN с топиком, партицией и offset, сбой сохранения — ERROR.
+Пароли, JWT, заголовки авторизации и тела запросов не записываются.
+
+Цепочка сбора: **stdout/stderr → Docker json-file → Filebeat → Logstash → Elasticsearch → Kibana**.
+[Filebeat autodiscover](https://www.elastic.co/docs/reference/beats/filebeat/configuration-autodiscover)
+выбирает контейнеры с меткой `distributed.logs=json`; в Compose она включена у трёх Go-сервисов.
+Logstash разбирает JSON, преобразует `time` в `@timestamp`, `msg` в `message` и индексирует
+события в `app-logs-YYYY.MM.dd`. Неожиданный текстовый вывод сохраняется с `_jsonparsefailure`
+и уровнем ERROR. Типы полей заданы шаблоном: `trace_id`, `service`, `level` и `file_id` доступны
+для точного поиска и группировок, `message` и `error` — для полнотекстового поиска.
+
+В [Kibana Discover](http://localhost:5601/app/discover) представление **Application logs**
+(`app-logs-*`) создаётся автоматически через `logging-setup` и выбирается по умолчанию.
+После запроса отчёта откройте Discover, выберите время **Last 15 minutes**, нажмите Refresh.
+Примеры запросов KQL в строке поиска:
+
+```text
+service: "employees-service"
+level: "ERROR"
+status >= 400
+trace_id: "<trace_id из лога или smoke.py>"
+file_id: "<file_id отчёта>"
+service: "files-service" and message: "saved queued report"
+```
+
+Колонки `service`, `level`, `message`, `status`, `trace_id` настраиваются автоматически.
+По одному `trace_id` видны HTTP-вызовы, публикация в Kafka и сохранение CSV;
+этот же ID можно открыть в Jaeger: `http://localhost:16686/trace/<trace_id>`.
+Конфигурация стека лежит в `logging/`, готовые настройки индекса и представления — в `logging/setup/`.
+Elasticsearch API для проверки — [localhost:9200](http://localhost:9200).
+
+Индексы сохраняются в volume `elasticsearch_data`, позиции чтения и дисковые очереди —
+в `filebeat_data` и `logstash_data`. У Filebeat и Logstash очереди по 256 MiB с повторной отправкой
+при недоступности Elasticsearch. Доставка допускает повторы после аварийного завершения.
+Docker ротирует исходные логи (3 файла по 10 MiB на сервис); длительный простой сборщика
+может привести к утрате ещё не прочитанных записей после ротации. Индексы автоматически
+не удаляются: для длительной эксплуатации нужна политика хранения и контроль свободного места.
+`docker compose down` сохраняет историю; **`docker compose down -v` удаляет volumes вместе с данными**.
+
+ELK запускается вместе со стендом через `docker compose up -d --build`.
+Первый запуск требует загрузки крупных образов и может занять несколько минут;
+Docker Desktop рекомендуется выделить не менее 8 GB памяти для всего стенда.
+Это локальный одновузловой ELK без TLS и отдельной авторизации, порты 5601 и 9200
+привязаны к localhost. Для удалённого доступа нужно включить безопасность Elastic.
+Filebeat использует доступ к Docker API и каталогу логов; стенд рассчитан на доверенную локальную машину.
 
 `smoke.py` читает учётные данные из локальных `employees/.env` и `monitoring/.env`, проверяет JWT,
 CSV, цели Prometheus, трассу HTTP → Kafka → S3, чтение топика через Kafka UI и запросы всех
-шести панелей Grafana к Prometheus; секреты не печатает.
+шести панелей Grafana к Prometheus, индексирование JSON-логов трёх сервисов с общим `trace_id`
+и настройку Kibana; секреты не печатает.
 Стенд использует HTTP и предназначен для локальной демонстрации; внешний доступ требует TLS.
 
 Проверки модулей:

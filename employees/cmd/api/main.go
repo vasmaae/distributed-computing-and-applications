@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -13,6 +14,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
 	appserver "github.com/vasmaae/distributed-computing-and-applications/common/server"
@@ -40,11 +42,13 @@ import (
 //	@in							header
 //	@name						Authorization
 func main() {
+	telemetry.InitLogging("employees-service")
 	cfg := config.MustLoad()
 	ctx := context.Background()
 
 	if err := run(ctx, cfg); err != nil { //nolint:staticcheck
-		log.Fatal(err)
+		slog.Error("service stopped", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -62,7 +66,7 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 		return fmt.Errorf("failed to migrate: %w", err)
 	}
 
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -75,12 +79,10 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 	filesClient := fc.NewClient(cfg.FilesClientURL())
 	reportHandler := rh.NewHandler(client, filesClient)
 
-	log.Println("started")
-
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(observer.Middleware)
-	router.Use(middleware.Recoverer)
+	router.Use(telemetry.Recoverer)
 	router.Post("/auth/login", authenticator.LoginHandler(cfg.Login.Username, cfg.Login.Password))
 	router.Post("/api/v1/auth/login", authenticator.LoginHandler(cfg.Login.Username, cfg.Login.Password))
 	router.Handle("/metrics", observer.Metrics())

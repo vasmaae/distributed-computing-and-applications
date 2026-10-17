@@ -1,5 +1,12 @@
 services:
   employees-service:
+    labels:
+      distributed.logs: "json"
+    logging: &app-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     build:
       context: .
       dockerfile: employees/Dockerfile
@@ -15,6 +22,9 @@ services:
 
 
   reports-service:
+    labels:
+      distributed.logs: "json"
+    logging: *app-logging
     build:
       context: .
       dockerfile: reports/Dockerfile
@@ -30,6 +40,9 @@ services:
 
 
   files-service:
+    labels:
+      distributed.logs: "json"
+    logging: *app-logging
     build:
       context: .
       dockerfile: files/Dockerfile
@@ -168,9 +181,97 @@ services:
     depends_on:
       - prometheus
 
+  elasticsearch:
+    # shortcut: local single-node ELK without TLS/auth; enable security before allowing remote access.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.ml.enabled: "false"
+      ingest.geoip.downloader.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.5.5
+    restart: unless-stopped
+    mem_limit: 2g
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=1024"
+    volumes:
+      - ./logging/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  logging-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5
+    entrypoint: ["/bin/bash", "/setup/setup.sh"]
+    volumes:
+      - ./logging/setup:/setup:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:9.5.5
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m -XX:MaxDirectMemorySize=128m"
+      LOG_FORMAT: json
+      XPACK_MONITORING_ENABLED: "false"
+      PIPELINE_WORKERS: "1"
+      PIPELINE_ECS_COMPATIBILITY: disabled
+      QUEUE_TYPE: persisted
+      QUEUE_MAX_BYTES: 256mb
+      QUEUE_CHECKPOINT_WRITES: "1"
+    volumes:
+      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - logstash_data:/usr/share/logstash/data
+    depends_on:
+      logging-setup:
+        condition: service_completed_successfully
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:9.5.5
+    user: root
+    restart: unless-stopped
+    mem_limit: 256m
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./logging/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
+    depends_on:
+      - logstash
+
 volumes:
   postgres_data:
   seaweedfs_data:
   kafka_data:
   prometheus_data:
   grafana_data:
+  elasticsearch_data:
+  logstash_data:
+  filebeat_data:

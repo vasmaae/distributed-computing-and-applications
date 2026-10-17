@@ -67,7 +67,7 @@ func process(ctx context.Context, msg kafka.Message, files FileStorage) error {
 		}
 	}
 	if err != nil || id == uuid.Nil() || contentType != "text/csv" || len(msg.Value) == 0 || len(msg.Value) > 8<<20 {
-		slog.WarnContext(ctx, "skipped invalid report message", "trace_id", span.SpanContext().TraceID().String())
+		slog.WarnContext(ctx, "skipped invalid report message", "topic", msg.Topic, "partition", msg.Partition, "offset", msg.Offset)
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -75,9 +75,9 @@ func process(ctx context.Context, msg kafka.Message, files FileStorage) error {
 	if err := files.Save(ctx, id, bytes.NewReader(msg.Value)); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to save report")
-		slog.ErrorContext(ctx, "save queued report", "file_id", id.String(), "trace_id", span.SpanContext().TraceID().String(), "error", err)
+		slog.ErrorContext(ctx, "save queued report", "file_id", id.String(), "error", err)
 		return fmt.Errorf("save queued report: %w", err)
 	}
-	slog.InfoContext(ctx, "saved queued report", "file_id", id.String(), "trace_id", span.SpanContext().TraceID().String())
+	slog.InfoContext(ctx, "saved queued report", "file_id", id.String())
 	return nil
 }

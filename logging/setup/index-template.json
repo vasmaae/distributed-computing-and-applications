@@ -1,0 +1,23 @@
+{
+  "index_patterns": ["app-logs-*"],
+  "template": {
+    "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+    "mappings": {
+      "properties": {
+        "@timestamp": {"type": "date"},
+        "service": {"type": "keyword"},
+        "level": {"type": "keyword"},
+        "message": {"type": "text"},
+        "trace_id": {"type": "keyword"},
+        "span_id": {"type": "keyword"},
+        "file_id": {"type": "keyword"},
+        "method": {"type": "keyword"},
+        "route": {"type": "keyword"},
+        "status": {"type": "integer"},
+        "duration_ms": {"type": "long"},
+        "error": {"type": "text"},
+        "stack": {"type": "text"}
+      }
+    }
+  }
+}

@@ -3,7 +3,6 @@ package report
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 	"uuid"
@@ -76,7 +75,7 @@ func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+id.String()+`.csv"`)
 		if _, err := w.Write(result.Data); err != nil {
-			log.Printf("failed to write CSV: %v", err)
+			telemetry.LogError(r.Context(), "write CSV", err)
 		}
 	}
 }

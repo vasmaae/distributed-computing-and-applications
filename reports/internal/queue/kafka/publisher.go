@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"time"
 	"uuid"
@@ -56,8 +57,12 @@ func (p *Publisher) Save(ctx context.Context, id uuid.UUID, src io.Reader) (err 
 	for key, value := range carrier {
 		headers = append(headers, kafka.Header{Key: key, Value: []byte(value)})
 	}
-	return p.writer.WriteMessages(ctx, kafka.Message{
+	err = p.writer.WriteMessages(ctx, kafka.Message{
 		Key: []byte(id.String()), Value: body,
 		Headers: headers,
 	})
+	if err == nil {
+		slog.InfoContext(ctx, "published queued report", "file_id", id.String(), "topic", p.writer.Topic)
+	}
+	return err
 }

@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
 
@@ -45,12 +46,11 @@ func MustLoad() *Config {
 		return &cfg
 	}
 
-	if err := cleanenv.ReadEnv(&cfg); err == nil {
-		return &cfg
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		slog.Error("load configuration", "error", err)
+		os.Exit(1)
 	}
-
-	log.Fatal("config not found")
-	return nil
+	return &cfg
 }
 
 func (c *Config) DSN() string {

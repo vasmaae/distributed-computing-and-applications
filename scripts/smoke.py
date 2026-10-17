@@ -1,4 +1,4 @@
-"""Check JWT, reports, monitoring dashboards, Kafka UI and a distributed trace."""
+"""Check JWT, reports, dashboards, Kafka UI, traces and centralized JSON logs."""
 
 import base64
 import csv
@@ -128,6 +128,29 @@ def main():
         body, _ = request("http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?" + urllib.parse.urlencode({"query": expression}), basic_auth=credentials)
         assert json.loads(body)["status"] == "success", panel["title"]
     print("OK: Kafka UI reads reports.files; all 6 Grafana panels query Prometheus")
+
+    for _ in range(90):
+        body, _ = request("http://localhost:9200/app-logs-*/_search?ignore_unavailable=true", data={
+            "query": {"term": {"trace_id": trace_id}}, "size": 100,
+        })
+        logs = [hit["_source"] for hit in json.loads(body)["hits"]["hits"]]
+        if {"employees-service", "reports-service", "files-service"} <= {entry["service"] for entry in logs}:
+            if {"published queued report", "saved queued report"} <= {entry["message"] for entry in logs}:
+                break
+        time.sleep(0.5)
+    else:
+        raise AssertionError("ELK did not index correlated HTTP and Kafka logs from all services")
+    serialized = json.dumps(logs)
+    for secret in (settings["AUTH_PASSWORD"], settings["JWT_SECRET"], token):
+        assert secret not in serialized, "secret leaked into centralized logs"
+    for entry in logs:
+        assert entry["@timestamp"] and entry["level"] and entry["span_id"], "log fields missing"
+        assert "_jsonparsefailure" not in entry.get("tags", []), "invalid application JSON log"
+    body, _ = request("http://localhost:5601/api/data_views/data_view/app-logs")
+    assert json.loads(body)["data_view"]["title"] == "app-logs-*", "Kibana data view missing"
+    body, _ = request("http://localhost:5601/api/data_views/default")
+    assert json.loads(body)["data_view_id"] == "app-logs", "Kibana default data view missing"
+    print("OK: ELK stores JSON logs from all services; search trace_id: " + trace_id)
 
 
 if __name__ == "__main__":

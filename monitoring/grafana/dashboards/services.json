@@ -29,6 +29,12 @@
       "targetBlank": true
     },
     {
+      "title": "Kibana logs",
+      "url": "http://localhost:5601/app/discover",
+      "type": "link",
+      "targetBlank": true
+    },
+    {
       "title": "Jaeger",
       "url": "http://localhost:16686/search",
       "type": "link",

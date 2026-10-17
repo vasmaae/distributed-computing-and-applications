@@ -2,8 +2,9 @@ package config
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -43,12 +44,11 @@ func MustLoad() *Config {
 		return &cfg
 	}
 
-	if err := cleanenv.ReadEnv(&cfg); err == nil {
-		return &cfg
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		slog.Error("load configuration", "error", err)
+		os.Exit(1)
 	}
-
-	log.Fatal("config not found")
-	return nil
+	return &cfg
 }
 
 func (c *Config) S3Client() *awss3.Client {
@@ -65,7 +65,8 @@ func (c *Config) S3Client() *awss3.Client {
 		),
 	)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("configure S3 client", "error", err)
+		os.Exit(1)
 	}
 
 	return awss3.NewFromConfig(sdkCfg, func(o *awss3.Options) {

@@ -8,6 +8,7 @@ import (
 	"time"
 	"uuid"
 
+	"github.com/vasmaae/distributed-computing-and-applications/common/telemetry"
 	errs "github.com/vasmaae/distributed-computing-and-applications/employees/internal/errors"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler"
 	"github.com/vasmaae/distributed-computing-and-applications/employees/internal/handler/dto"
@@ -61,6 +62,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, errs.ErrEmployeeNotFound):
 			response.WriteError(w, http.StatusNotFound, err.Error())
 		default:
+			telemetry.LogError(r.Context(), "employee operation failed", err)
 			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -84,6 +86,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	employees, err := h.s.GetAll(r.Context())
 	if err != nil {
+		telemetry.LogError(r.Context(), "employee operation failed", err)
 		response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -127,6 +130,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, errs.ErrInvalidFIO):
 			response.WriteError(w, http.StatusBadRequest, err.Error())
 		default:
+			telemetry.LogError(r.Context(), "employee operation failed", err)
 			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -180,6 +184,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, errs.ErrInvalidFIO):
 			response.WriteError(w, http.StatusBadRequest, err.Error())
 		default:
+			telemetry.LogError(r.Context(), "employee operation failed", err)
 			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -214,6 +219,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, errs.ErrEmployeeNotFound):
 			response.WriteError(w, http.StatusNotFound, err.Error())
 		default:
+			telemetry.LogError(r.Context(), "employee operation failed", err)
 			response.WriteError(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
