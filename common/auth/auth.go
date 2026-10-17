@@ -28,6 +28,17 @@ type Auth struct {
 	key []byte
 }
 
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
 type tokenKey struct{}
 
 func New(secret string) (*Auth, error) {
@@ -66,12 +77,22 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// LoginHandler
+//
+// @Summary Issue a JWT token
+// @Description Use AUTH_USERNAME and AUTH_PASSWORD from employees/.env. The token expires in 15 minutes.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param credentials body Credentials true "Login credentials"
+// @Success 200 {object} TokenResponse
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {string} string "Failed to issue token"
+// @Router /auth/login [post]
 func (a *Auth) LoginHandler(username, password string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var credentials struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}
+		var credentials Credentials
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&credentials); err != nil {
@@ -98,7 +119,7 @@ func (a *Auth) LoginHandler(username, password string) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		if err := json.NewEncoder(w).Encode(map[string]any{"access_token": token, "token_type": "Bearer", "expires_in": 900}); err != nil {
+		if err := json.NewEncoder(w).Encode(TokenResponse{AccessToken: token, TokenType: "Bearer", ExpiresIn: 900}); err != nil { //nolint:gosec // G117: login intentionally returns the issued access token.
 			slog.ErrorContext(r.Context(), "write token response", "error", err)
 		}
 	}

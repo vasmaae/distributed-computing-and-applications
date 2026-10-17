@@ -74,11 +74,13 @@ curl -OJ http://localhost:8080/employees/api/v1/reports/files/FILE_ID
 Пароль локальной учётной записи хранится в `employees/.env`.
 
 ```sh
-curl http://localhost:8080/employees/auth/login \
+curl http://localhost:8080/employees/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"<AUTH_USERNAME>","password":"<AUTH_PASSWORD>"}'
 ```
 
+Этот запрос доступен и в Swagger: **auth → POST /auth/login → Try it out**.
+Прежний адрес `/employees/auth/login` также работает.
 Сохраните `access_token` из ответа в переменную `TOKEN`. Токен действует 15 минут.
 
 ```sh

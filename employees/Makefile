@@ -46,6 +46,7 @@ swagger: install-swag
 	@echo "📚 Генерируем Swagger документацию..."
 	@$(SWAG) init \
 		-g $(SWAG_MAIN) \
+		--dir ./,../common \
 		-o $(SWAG_DOCS_DIR) \
 		--parseInternal \
 		--parseDependencyLevel 1

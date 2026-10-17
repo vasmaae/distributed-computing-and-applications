@@ -1,5 +1,21 @@
 basePath: /api/v1
 definitions:
+  auth.Credentials:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  auth.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      token_type:
+        type: string
+    type: object
   github_com_vasmaae_distributed-computing-and-applications_employees_internal_client_dto.EmployeeResponse:
     properties:
       birth_date:
@@ -55,6 +71,42 @@ info:
   title: Employee API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Use AUTH_USERNAME and AUTH_PASSWORD from employees/.env. The token
+        expires in 15 minutes.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/auth.Credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to issue token
+          schema:
+            type: string
+      summary: Issue a JWT token
+      tags:
+      - auth
   /employees:
     get:
       produces:

@@ -40,8 +40,8 @@ def main():
         if line and not line.startswith("#") and "=" in line
     )
     request(BASE + "/api/v1/employees", status=401)
-    request(BASE + "/auth/login", data={"username": settings["AUTH_USERNAME"], "password": "wrong"}, status=401)
-    body, _ = request(BASE + "/auth/login", data={"username": settings["AUTH_USERNAME"], "password": settings["AUTH_PASSWORD"]})
+    request(BASE + "/api/v1/auth/login", data={"username": settings["AUTH_USERNAME"], "password": "wrong"}, status=401)
+    body, _ = request(BASE + "/api/v1/auth/login", data={"username": settings["AUTH_USERNAME"], "password": settings["AUTH_PASSWORD"]})
     token = json.loads(body)["access_token"]
     request(BASE + "/api/v1/employees", token=token + ".invalid", status=401)
     trace_id = uuid.uuid4().hex

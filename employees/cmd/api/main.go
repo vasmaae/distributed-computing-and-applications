@@ -82,6 +82,7 @@ func run(ctx context.Context, cfg *config.Config) error { //nolint:staticcheck
 	router.Use(observer.Middleware)
 	router.Use(middleware.Recoverer)
 	router.Post("/auth/login", authenticator.LoginHandler(cfg.Login.Username, cfg.Login.Password))
+	router.Post("/api/v1/auth/login", authenticator.LoginHandler(cfg.Login.Username, cfg.Login.Password))
 	router.Handle("/metrics", observer.Metrics())
 	router.Group(func(r chi.Router) {
 		r.Use(authenticator.Middleware)

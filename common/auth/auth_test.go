@@ -88,13 +88,11 @@ func TestLoginAndTokenForwarding(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	a.LoginHandler("admin", "password").ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"admin","password":"password"}`)))
-	var response struct {
-		AccessToken string `json:"access_token"`
-	}
+	var response TokenResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.AccessToken == "" || w.Header().Get("Cache-Control") != "no-store" {
+	if response.AccessToken == "" || response.TokenType != "Bearer" || response.ExpiresIn != 900 || w.Header().Get("Cache-Control") != "no-store" {
 		t.Fatal("login did not issue a token")
 	}
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
