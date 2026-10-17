@@ -49,8 +49,8 @@ x-files-instance: &files-instance
     default:
       aliases: [files-backend]
   depends_on:
-    seaweedfs:
-      condition: service_healthy
+    seaweedfs-init:
+      condition: service_completed_successfully
     kafka-init:
       condition: service_completed_successfully
 
@@ -64,6 +64,18 @@ x-kafka: &kafka
     test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
     interval: 5s
     timeout: 10s
+    retries: 30
+
+x-volume-server: &volume-server
+  image: chrislusf/seaweedfs:4.48
+  restart: unless-stopped
+  depends_on:
+    seaweedfs:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/status"]
+    interval: 2s
+    timeout: 3s
     retries: 30
 
 services:
@@ -123,7 +135,15 @@ services:
 
   seaweedfs:
     image: chrislusf/seaweedfs:4.48
-    command: [ "mini", "-dir=data" ]
+    # shortcut: master, filer and S3 remain on one node; separate and replicate them for full S3 HA.
+    command:
+      - mini
+      - -dir=/data/data
+      - -ip=seaweedfs
+      - -ip.bind=0.0.0.0
+      - -master.defaultReplication=001
+      - -filer.defaultReplicaPlacement=001
+      - -volume.max=32
     restart: unless-stopped
 
     env_file:
@@ -136,6 +156,31 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  seaweedfs-volume-2:
+    <<: *volume-server
+    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-2", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1"]
+    volumes:
+      - seaweedfs_volume_2_data:/data
+
+  seaweedfs-volume-3:
+    <<: *volume-server
+    command: ["volume", "-dir=/data", "-master=seaweedfs:9333", "-ip=seaweedfs-volume-3", "-ip.bind=0.0.0.0", "-max=32", "-preStopSeconds=1"]
+    volumes:
+      - seaweedfs_volume_3_data:/data
+
+  seaweedfs-init:
+    image: chrislusf/seaweedfs:4.48
+    entrypoint: ["/bin/sh", "/scripts/replicate.sh"]
+    volumes:
+      - ./storage:/scripts:ro
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+      seaweedfs-volume-2:
+        condition: service_healthy
+      seaweedfs-volume-3:
+        condition: service_healthy
 
   kafka-1:
     <<: *kafka
@@ -317,6 +362,8 @@ services:
       - logstash
 
 volumes:
+  seaweedfs_volume_2_data:
+  seaweedfs_volume_3_data:
   postgres_data:
   seaweedfs_data:
   kafka_data:
