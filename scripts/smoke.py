@@ -1,5 +1,6 @@
-"""Check JWT, queued reports, CSV download, Prometheus and a distributed trace."""
+"""Check JWT, reports, monitoring dashboards, Kafka UI and a distributed trace."""
 
+import base64
 import csv
 import io
 import json
@@ -7,16 +8,20 @@ from pathlib import Path
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 import uuid
 
 
 BASE = "http://localhost:8080/employees"
 
 
-def request(url, *, token=None, data=None, trace_id=None, status=200):
+def request(url, *, token=None, basic_auth=None, data=None, trace_id=None, status=200):
     headers = {}
     if token:
         headers["Authorization"] = "Bearer " + token
+    if basic_auth:
+        credentials = base64.b64encode(":".join(basic_auth).encode()).decode()
+        headers["Authorization"] = "Basic " + credentials
     if data is not None:
         headers["Content-Type"] = "application/json"
         data = json.dumps(data).encode()
@@ -32,13 +37,17 @@ def request(url, *, token=None, data=None, trace_id=None, status=200):
         return response.read(), response.headers
 
 
-def main():
+def read_env(path):
     # shortcut: plain KEY=value env files; use a dotenv parser if quoted or multiline values are needed.
-    settings = dict(
+    return dict(
         line.split("=", 1)
-        for line in (Path(__file__).resolve().parent.parent / "employees/.env").read_text().splitlines()
+        for line in (Path(__file__).resolve().parent.parent / path).read_text().splitlines()
         if line and not line.startswith("#") and "=" in line
     )
+
+
+def main():
+    settings = read_env("employees/.env")
     request(BASE + "/api/v1/employees", status=401)
     request(BASE + "/api/v1/auth/login", data={"username": settings["AUTH_USERNAME"], "password": "wrong"}, status=401)
     body, _ = request(BASE + "/api/v1/auth/login", data={"username": settings["AUTH_USERNAME"], "password": settings["AUTH_PASSWORD"]})
@@ -102,6 +111,23 @@ def main():
     else:
         raise AssertionError("trace does not connect HTTP calls and Kafka delivery")
     print("OK: Prometheus scrapes all services; Jaeger trace http://localhost:16686/trace/" + trace_id)
+
+    body, _ = request("http://localhost:8081/api/clusters")
+    clusters = json.loads(body)
+    assert any(cluster["name"] == "local" for cluster in clusters), "Kafka UI cluster missing"
+    body, _ = request("http://localhost:8081/api/clusters/local/topics/reports.files")
+    assert json.loads(body)["name"] == "reports.files", "Kafka UI cannot read report topic"
+
+    grafana = read_env("monitoring/.env")
+    credentials = (grafana["GF_SECURITY_ADMIN_USER"], grafana["GF_SECURITY_ADMIN_PASSWORD"])
+    body, _ = request("http://localhost:3000/api/dashboards/uid/services", basic_auth=credentials)
+    dashboard = json.loads(body)["dashboard"]
+    assert len(dashboard["panels"]) == 6, "Grafana service dashboard missing"
+    for panel in dashboard["panels"]:
+        expression = panel["targets"][0]["expr"].replace("$service", "employees|reports|files").replace("$__rate_interval", "1m").replace("$__range", "15m")
+        body, _ = request("http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?" + urllib.parse.urlencode({"query": expression}), basic_auth=credentials)
+        assert json.loads(body)["status"] == "success", panel["title"]
+    print("OK: Kafka UI reads reports.files; all 6 Grafana panels query Prometheus")
 
 
 if __name__ == "__main__":

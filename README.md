@@ -5,7 +5,7 @@
 
 ## Запуск
 
-Скопируйте `example.env` в `.env` в каталогах `database`, `employees`, `reports`, `files`, `storage`, `queue`.
+Скопируйте `example.env` в `.env` в каталогах `database`, `employees`, `reports`, `files`, `storage`, `queue`, `kafka-ui`, `monitoring`.
 В `files/.env` и `storage/.env` должны совпадать S3-ключи и имя бакета. Замените демонстрационные пароли.
 
 ```sh
@@ -107,15 +107,53 @@ Jaeger хранит трассы в памяти, поэтому перезап�
 Метки используют шаблоны маршрутов, поэтому UUID не создают новые временные ряды.
 Метрики не публикуются через шлюз; UI Prometheus и Jaeger доступны только на localhost.
 
+### Kafka UI и Grafana
+
+| Страница | Что показать |
+|---|---|
+| [Swagger](http://localhost:8080/employees/swagger/index.html) | JWT, CRUD сотрудников, отчёт и скачивание CSV |
+| [Kafka UI](http://localhost:8081) | Кластер `local`, топик `reports.files`, сообщения, группа `files-service` и lag |
+| [Grafana — Services overview](http://localhost:3000/d/services/services-overview) | Состояние и метрики трёх сервисов |
+| [Prometheus Targets](http://localhost:9090/targets) | Проверка, что все сервисы имеют статус UP |
+| [Jaeger](http://localhost:16686/search) | Трасса HTTP → Kafka → S3 |
+
+Kafka UI — [Kafbat UI](https://ui.docs.kafbat.io/overview/getting-started), заранее подключён к `kafka:9092`.
+Вход в Grafana — логин и пароль `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`
+из локального `monitoring/.env`. Не используйте пароль приложения вместо пароля Grafana.
+При первом запуске Grafana создаёт учётную запись; изменение `.env` после этого само по себе пароль не меняет.
+
+Prometheus и дашборд подключаются через [file provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/).
+Ручной импорт не нужен. В дашборде шесть панелей: доступность сервисов, число запросов за выбранный
+интервал, запросы в секунду, p95 времени ответа, ошибки HTTP 4xx/5xx и память RSS.
+Сверху можно выбрать сервис, период и перейти в остальные инструменты демонстрации.
+Обновление — каждые 5 секунд. p95 и частота запросов отражают интервалы с реальным трафиком.
+Создайте несколько отчётов и скачайте CSV через Swagger, чтобы показать изменения на графиках.
+
+Дашборд хранится в `monitoring/grafana/dashboards/services.json`, настройки источника и загрузки —
+в `monitoring/grafana/provisioning`. Правки дашборда делаются в JSON. Данные Grafana сохраняются
+в volume `grafana_data`; пароли — только в игнорируемом `.env`. Kafka UI и Grafana доступны на localhost.
+
+### Логирование
+
 ```sh
 docker compose logs -f employees-service reports-service files-service
 python3 scripts/smoke.py
 ```
 
 Логи запросов — JSON с сервисом, маршрутом, статусом, длительностью и `trace_id`.
-Лог потребителя содержит `file_id` и тот же `trace_id`. Пароли, JWT и тела запросов не логируются.
-`smoke.py` читает учётные данные из локального `employees/.env`, проверяет JWT, CSV, все три
-цели Prometheus и трассу HTTP → Kafka → S3 в Jaeger; секреты не печатает.
+Общий модуль `common/telemetry` устанавливает `slog.JSONHandler` для stdout; middleware пишет
+завершение каждого HTTP-запроса, кроме `/metrics`, включая `method`, `route`, `status`,
+`duration_ms`, `trace_id` и `span_id`. Шаблон маршрута не содержит конкретный UUID.
+Прикладные ошибки логируются с уровнем ERROR и идентификатором трассы. Потребитель Kafka
+пишет успешное сохранение с уровнем INFO, повреждённое сообщение — WARN, сбой S3 — ERROR;
+его запись содержит `file_id` и `trace_id`, связывающий обработку с запросом в Jaeger.
+Пароли, JWT и тела запросов не логируются. Docker собирает stdout/stderr контейнеров;
+просмотр — через `docker compose logs`. Централизованное хранилище логов Loki/ELK не настроено:
+Grafana на этом стенде показывает метрики, Jaeger — трассы.
+
+`smoke.py` читает учётные данные из локальных `employees/.env` и `monitoring/.env`, проверяет JWT,
+CSV, цели Prometheus, трассу HTTP → Kafka → S3, чтение топика через Kafka UI и запросы всех
+шести панелей Grafana к Prometheus; секреты не печатает.
 Стенд использует HTTP и предназначен для локальной демонстрации; внешний доступ требует TLS.
 
 Проверки модулей:

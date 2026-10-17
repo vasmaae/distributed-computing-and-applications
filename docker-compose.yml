@@ -123,6 +123,17 @@ services:
       kafka:
         condition: service_healthy
 
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0
+    restart: unless-stopped
+    env_file:
+      - kafka-ui/.env
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
   jaeger:
     # shortcut: traces are in memory; add persistent storage when history must survive restarts.
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
@@ -143,8 +154,23 @@ services:
       - reports-service
       - files-service
 
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    env_file:
+      - monitoring/.env
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
 volumes:
   postgres_data:
   seaweedfs_data:
   kafka_data:
   prometheus_data:
+  grafana_data:
