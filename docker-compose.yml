@@ -54,6 +54,18 @@ x-files-instance: &files-instance
     kafka-init:
       condition: service_completed_successfully
 
+x-kafka: &kafka
+  image: apache/kafka:4.1.0
+  restart: unless-stopped
+  mem_limit: 1g
+  env_file: [queue/.env]
+  entrypoint: ["/bin/bash", "/scripts/start.sh"]
+  healthcheck:
+    test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+    interval: 5s
+    timeout: 10s
+    retries: 30
+
 services:
   employees-1: *employees-instance
   employees-2: *employees-instance
@@ -125,29 +137,53 @@ services:
       timeout: 3s
       retries: 30
 
-  kafka:
-    # shortcut: one broker for the local lab; use replicas when availability is required.
-    image: apache/kafka:4.1.0
-    restart: unless-stopped
-    env_file:
-      - queue/.env
+  kafka-1:
+    <<: *kafka
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://kafka-1:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+    networks:
+      default:
+        aliases: [kafka]
     volumes:
+      - ./queue:/scripts:ro
       - kafka_data:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 5s
-      timeout: 10s
-      retries: 20
+
+  kafka-2:
+    <<: *kafka
+    environment:
+      KAFKA_NODE_ID: "2"
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://kafka-2:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
+    volumes:
+      - ./queue:/scripts:ro
+      - kafka_2_data:/var/lib/kafka/data
+
+  kafka-3:
+    <<: *kafka
+    environment:
+      KAFKA_NODE_ID: "3"
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://kafka-3:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092
+    volumes:
+      - ./queue:/scripts:ro
+      - kafka_3_data:/var/lib/kafka/data
 
   kafka-init:
     image: apache/kafka:4.1.0
-    env_file:
-      - queue/.env
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - 'exec /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic "$${QUEUE_TOPIC}" --partitions 1 --replication-factor 1 --config max.message.bytes=9437184'
+    env_file: [queue/.env]
+    entrypoint: ["/bin/bash", "/scripts/init.sh"]
+    volumes:
+      - ./queue:/scripts:ro
+      - kafka_2_data:/nodes/2:ro
+      - kafka_3_data:/nodes/3:ro
     depends_on:
-      kafka:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
 
   kafka-ui:
@@ -284,6 +320,8 @@ volumes:
   postgres_data:
   seaweedfs_data:
   kafka_data:
+  kafka_2_data:
+  kafka_3_data:
   prometheus_data:
   grafana_data:
   elasticsearch_data:
