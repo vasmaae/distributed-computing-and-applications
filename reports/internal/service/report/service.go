@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"io"
 	"strconv"
 	"time"
 	"uuid"
@@ -18,19 +17,19 @@ type Repository interface {
 	GetAll(ctx context.Context) ([]model.Employee, error)
 }
 
-type FileStorage interface {
-	Save(ctx context.Context, id uuid.UUID, src io.Reader) error
+type ReportStorage interface {
+	Save(ctx context.Context, report model.Report, csv []byte) error
 }
 
 var _ handler.Service = (*Service)(nil)
 
 type Service struct {
 	r     Repository
-	files FileStorage
+	store ReportStorage
 }
 
-func NewService(r Repository, files FileStorage) *Service {
-	return &Service{r: r, files: files}
+func NewService(r Repository, store ReportStorage) *Service {
+	return &Service{r: r, store: store}
 }
 
 func (s *Service) GetEmployeesReport(ctx context.Context) (model.Report, error) {
@@ -58,7 +57,7 @@ func (s *Service) GetEmployeesReport(ctx context.Context) (model.Report, error) 
 		return model.Report{}, fmt.Errorf("report exceeds 8 MiB")
 	}
 	report.FileID = uuid.New()
-	if err := s.files.Save(ctx, report.FileID, &buf); err != nil {
+	if err := s.store.Save(ctx, report, buf.Bytes()); err != nil {
 		return model.Report{}, fmt.Errorf("save report: %w", err)
 	}
 	return report, nil

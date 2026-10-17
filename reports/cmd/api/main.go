@@ -6,10 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/vasmaae/distributed-computing-and-applications/common/auth"
 	appserver "github.com/vasmaae/distributed-computing-and-applications/common/server"
@@ -18,6 +21,8 @@ import (
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/config"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler"
 	rh "github.com/vasmaae/distributed-computing-and-applications/reports/internal/handler/report"
+	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/migrations"
+	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/outbox"
 	"github.com/vasmaae/distributed-computing-and-applications/reports/internal/queue/kafka"
 	rs "github.com/vasmaae/distributed-computing-and-applications/reports/internal/service/report"
 )
@@ -39,7 +44,9 @@ func main() {
 }
 
 func run(cfg *config.Config) error { //nolint:staticcheck
-	observer, shutdown, err := telemetry.New(context.Background(), "reports-service")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	observer, shutdown, err := telemetry.New(ctx, "reports-service")
 	if err != nil {
 		return err
 	}
@@ -48,10 +55,40 @@ func run(cfg *config.Config) error { //nolint:staticcheck
 	if err != nil {
 		return err
 	}
+	poolConfig, err := pgxpool.ParseConfig(cfg.DSN())
+	if err != nil {
+		return err
+	}
+	poolConfig.MaxConns = 4
+	db, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	conn, err := db.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("connect reports database: %w", err)
+	}
+	err = migrations.MigratePG(ctx, conn.Conn())
+	conn.Release()
+	if err != nil {
+		return fmt.Errorf("migrate reports database: %w", err)
+	}
 	client := ec.NewClient(cfg.EmployeesClientURL())
 	publisher := kafka.NewPublisher(cfg.Queue.Brokers, cfg.Queue.Topic)
 	defer publisher.Close() //nolint:errcheck
-	svc := rs.NewService(client, publisher)
+	store := outbox.New(db)
+	workerCtx, cancelWorker := context.WithCancel(ctx)
+	workerDone := make(chan struct{})
+	go func() {
+		defer close(workerDone)
+		store.Run(workerCtx, publisher)
+	}()
+	defer func() {
+		cancelWorker()
+		<-workerDone
+	}()
+	svc := rs.NewService(client, store)
 	h := rh.NewHandler(svc)
 
 	router := chi.NewRouter()
@@ -71,5 +108,5 @@ func run(cfg *config.Config) error { //nolint:staticcheck
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  10 * time.Second,
 	}
-	return appserver.ListenAndServe(context.Background(), server)
+	return appserver.ListenAndServe(ctx, server)
 }

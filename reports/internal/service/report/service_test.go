@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -27,12 +26,8 @@ type fileStorage struct {
 	err error
 }
 
-func (s *fileStorage) Save(_ context.Context, id uuid.UUID, src io.Reader) error {
-	s.id = id
-	body, err := io.ReadAll(src)
-	if err != nil {
-		return err
-	}
+func (s *fileStorage) Save(_ context.Context, report model.Report, body []byte) error {
+	s.id = report.FileID
 	s.csv = string(body)
 	return s.err
 }

@@ -36,7 +36,7 @@ x-reports-instance: &reports-instance
     default:
       aliases: [reports-backend]
   depends_on:
-    kafka-init:
+    postgres-init:
       condition: service_completed_successfully
 
 x-files-instance: &files-instance
@@ -101,12 +101,27 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 2s
       timeout: 3s
       retries: 15
+
+  postgres-init:
+    image: postgres:18-alpine
+    env_file: [database/.env]
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        export PGUSER="$$POSTGRES_USER" PGPASSWORD="$$POSTGRES_PASSWORD"
+        exec psql -h postgres -d postgres -v ON_ERROR_STOP=1 -f /init/01-create-reports-database.sql
+    volumes:
+      - ./database/init:/init:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 
   nginx:
@@ -129,10 +144,6 @@ services:
       reports-1:
         condition: service_healthy
       reports-2:
-        condition: service_healthy
-      files-1:
-        condition: service_healthy
-      files-2:
         condition: service_healthy
 
 

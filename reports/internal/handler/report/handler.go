@@ -29,12 +29,13 @@ func NewHandler(s Service) *Handler {
 
 // GetEmployeesReport
 //
-//	@Summary	Get employees report
-//	@Tags		reports
-//	@Produce	json
-//	@Success	200	{object}	dto.ReportResponse
-//	@Failure	500	{object}	response.ErrorResponse
-//	@Router		/reports/employees-report [get]
+//	@Summary		Get employees report
+//	@Description	Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes.
+//	@Tags			reports
+//	@Produce		json
+//	@Success		200	{object}	dto.ReportResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/reports/employees-report [get]
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.s.GetEmployeesReport(r.Context())
 	if err != nil {

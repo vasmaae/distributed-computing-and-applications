@@ -82,16 +82,17 @@ func (h *Handler) GetFile(w http.ResponseWriter, r *http.Request) {
 
 // GetEmployeesReport
 //
-//	@Summary	Get employees reports
-//	@Tags		reports
+//	@Summary		Get employees reports
+//	@Description	Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes.
+//	@Tags			reports
 //
-//	@Security	BearerAuth
+//	@Security		BearerAuth
 //
-//	@Produce	json
-//	@Success	200	{object}	dto.ReportResponse
-//	@Failure	424	{object}	response.ErrorResponse
-//	@Failure	500	{object}	response.ErrorResponse
-//	@Router		/reports/employees-report [get]
+//	@Produce		json
+//	@Success		200	{object}	dto.ReportResponse
+//	@Failure		424	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/reports/employees-report [get]
 func (h *Handler) GetEmployeesReport(w http.ResponseWriter, r *http.Request) {
 	report, err := h.c.GetEmployeesReport(r.Context())
 	if err != nil {

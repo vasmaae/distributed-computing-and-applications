@@ -89,7 +89,7 @@ def main():
     request(BASE + "/api/v1/reports/files/wrong", token=token, status=400)
     request(BASE + "/api/v1/reports/files/" + str(uuid.uuid4()), token=token, status=404)
     request(BASE + "/metrics", status=404)
-    print("OK: JWT, queued CSV and Future download through gateway", flush=True)
+    print("OK: JWT, outbox delivery, queued CSV and Future download through gateway", flush=True)
 
     for _ in range(40):
         body, _ = request("http://localhost:9090/api/v1/targets")
@@ -112,7 +112,7 @@ def main():
         if traces:
             services = {p["serviceName"] for p in traces[0]["processes"].values()}
             operations = {s["operationName"] for s in traces[0]["spans"]}
-            if {"employees-service", "reports-service", "files-service"} <= services and {"reports.files publish", "reports.files process"} <= operations:
+            if {"employees-service", "reports-service", "files-service"} <= services and {"outbox deliver", "reports.files publish", "reports.files process"} <= operations:
                 break
         time.sleep(0.5)
     else:
@@ -142,7 +142,7 @@ def main():
         })
         logs = [hit["_source"] for hit in json.loads(body)["hits"]["hits"]]
         if {"employees-service", "reports-service", "files-service"} <= {entry["service"] for entry in logs}:
-            if {"published queued report", "saved queued report"} <= {entry["message"] for entry in logs}:
+            if {"queued report in outbox", "published outbox report", "published queued report", "saved queued report"} <= {entry["message"] for entry in logs}:
                 break
         time.sleep(0.5)
     else:

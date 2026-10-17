@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net"
+	"net/url"
 	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -11,7 +13,15 @@ import (
 )
 
 type Config struct {
-	Auth auth.Config `yaml:"auth"`
+	Auth     auth.Config `yaml:"auth"`
+	Database struct {
+		Host     string `yaml:"host" env:"DATABASE_HOST" env-required:"true"`
+		Port     string `yaml:"port" env:"DATABASE_PORT" env-default:"5432"`
+		Username string `yaml:"username" env:"DATABASE_USERNAME" env-required:"true"`
+		Password string `yaml:"password" env:"DATABASE_PASSWORD" env-required:"true"`
+		Database string `yaml:"database" env:"DATABASE_DATABASE" env-default:"reports"`
+		SSLMode  string `yaml:"ssl_mode" env:"DATABASE_SSL_MODE" env-default:"disable"`
+	} `yaml:"database"`
 	HTTP struct {
 		Host string `yaml:"host" env:"HTTP_HOST"`
 		Port string `yaml:"port" env:"HTTP_PORT"`
@@ -42,4 +52,14 @@ func MustLoad() *Config {
 
 func (c *Config) EmployeesClientURL() string {
 	return fmt.Sprintf("http://%s:%s", c.EmployeesClient.Host, c.EmployeesClient.Port)
+}
+
+func (c *Config) DSN() string {
+	u := url.URL{
+		Scheme: "postgres", User: url.UserPassword(c.Database.Username, c.Database.Password),
+		Host: net.JoinHostPort(c.Database.Host, c.Database.Port), Path: c.Database.Database,
+	}
+	q := url.Values{"sslmode": {c.Database.SSLMode}, "connect_timeout": {"5"}}
+	u.RawQuery = q.Encode()
+	return u.String()
 }

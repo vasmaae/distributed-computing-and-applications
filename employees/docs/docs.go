@@ -306,6 +306,7 @@ const docTemplate = `{
         },
         "/reports/employees-report": {
             "get": {
+                "description": "Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes.",
                 "security": [
                     {
                         "BearerAuth": []
