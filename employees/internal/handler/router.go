@@ -9,6 +9,7 @@ import (
 type EmployeeHandler interface {
 	GetByID(w http.ResponseWriter, r *http.Request)
 	GetAll(w http.ResponseWriter, r *http.Request)
+	GetSorted(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
 	Update(w http.ResponseWriter, r *http.Request)
 	Delete(w http.ResponseWriter, r *http.Request)
@@ -24,6 +25,7 @@ func RegisterRoutes(r chi.Router, employeeHandler EmployeeHandler, reportHandler
 		r.Route("/employees", func(r chi.Router) {
 			r.Get("/", employeeHandler.GetAll)
 			r.Post("/", employeeHandler.Create)
+			r.Post("/sorted", employeeHandler.GetSorted)
 			r.Put("/{id}", employeeHandler.Update)
 			r.Get("/{id}", employeeHandler.GetByID)
 			r.Delete("/{id}", employeeHandler.Delete)

@@ -149,6 +149,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/employees/sorted": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Get employees sorted by ID, birth date or FIO",
+                "parameters": [
+                    {
+                        "description": "Sort options",
+                        "name": "options",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortEmployeesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortedEmployeesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/employees/{id}": {
             "get": {
                 "security": [
@@ -306,12 +362,12 @@ const docTemplate = `{
         },
         "/reports/employees-report": {
             "get": {
-                "description": "Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes.",
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
+                "description": "Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes.",
                 "produces": [
                     "application/json"
                 ],
@@ -487,6 +543,54 @@ const docTemplate = `{
                 },
                 "is_fired": {
                     "type": "boolean"
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortEmployeesRequest": {
+            "type": "object",
+            "required": [
+                "order",
+                "sort_by",
+                "threads"
+            ],
+            "properties": {
+                "order": {
+                    "type": "string",
+                    "enum": [
+                        "asc",
+                        "desc"
+                    ],
+                    "example": "asc"
+                },
+                "sort_by": {
+                    "type": "string",
+                    "enum": [
+                        "id",
+                        "birth_date",
+                        "fio"
+                    ],
+                    "example": "id"
+                },
+                "threads": {
+                    "type": "integer",
+                    "maximum": 256,
+                    "minimum": 1,
+                    "example": 5
+                }
+            }
+        },
+        "github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortedEmployeesResponse": {
+            "type": "object",
+            "properties": {
+                "employees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse"
+                    }
+                },
+                "sort_duration_ms": {
+                    "type": "number",
+                    "example": 0.127
                 }
             }
         },

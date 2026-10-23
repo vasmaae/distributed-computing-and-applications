@@ -58,6 +58,41 @@ definitions:
       is_fired:
         type: boolean
     type: object
+  github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortEmployeesRequest:
+    properties:
+      order:
+        enum:
+        - asc
+        - desc
+        example: asc
+        type: string
+      sort_by:
+        enum:
+        - id
+        - birth_date
+        - fio
+        example: id
+        type: string
+      threads:
+        example: 5
+        maximum: 256
+        minimum: 1
+        type: integer
+    required:
+    - order
+    - sort_by
+    - threads
+    type: object
+  github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortedEmployeesResponse:
+    properties:
+      employees:
+        items:
+          $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.EmployeeResponse'
+        type: array
+      sort_duration_ms:
+        example: 0.127
+        type: number
+    type: object
   github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse:
     properties:
       code:
@@ -255,9 +290,45 @@ paths:
       summary: Update employee
       tags:
       - employees
+  /employees/sorted:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Sort options
+        in: body
+        name: options
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortEmployeesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_dto.SortedEmployeesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_vasmaae_distributed-computing-and-applications_employees_internal_handler_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get employees sorted by ID, birth date or FIO
+      tags:
+      - employees
   /reports/employees-report:
     get:
-      description: "Generates the report and durably queues its CSV. Download by file_id may return 404 until delivery completes."
+      description: Generates the report and durably queues its CSV. Download by file_id
+        may return 404 until delivery completes.
       produces:
       - application/json
       responses:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 	"uuid"
@@ -20,6 +21,7 @@ import (
 type Service interface {
 	GetByID(ctx context.Context, id uuid.UUID) (model.Employee, error)
 	GetAll(ctx context.Context) ([]model.Employee, error)
+	GetSorted(ctx context.Context, sortBy, order string, threads int) ([]model.Employee, time.Duration, error)
 	Create(ctx context.Context, fio string, birthDate time.Time) (model.Employee, error)
 	Update(ctx context.Context, id uuid.UUID, fio string, birthDate time.Time) (model.Employee, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -93,6 +95,48 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	employeeResponses := dto.ToEmployeeResponses(employees)
 	response.WriteResponse(w, http.StatusOK, employeeResponses)
+}
+
+// GetSorted
+//
+//	@Summary	Get employees sorted by ID, birth date or FIO
+//	@Tags		employees
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Produce	json
+//	@Param		options	body		dto.SortEmployeesRequest	true	"Sort options"
+//	@Success	200		{object}	dto.SortedEmployeesResponse
+//	@Failure	400		{object}	response.ErrorResponse
+//	@Failure	401		{object}	response.ErrorResponse
+//	@Failure	500		{object}	response.ErrorResponse
+//	@Router		/employees/sorted [post]
+func (h *Handler) GetSorted(w http.ResponseWriter, r *http.Request) {
+	var options dto.SortEmployeesRequest
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&options); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		response.WriteError(w, http.StatusBadRequest, "request body must contain one JSON object")
+		return
+	}
+
+	employees, elapsed, err := h.s.GetSorted(r.Context(), options.SortBy, options.Order, options.Threads)
+	if err != nil {
+		if errors.Is(err, errs.ErrInvalidSort) {
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		} else {
+			telemetry.LogError(r.Context(), "employee sorting failed", err)
+			response.WriteError(w, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+	response.WriteResponse(w, http.StatusOK, dto.SortedEmployeesResponse{
+		Employees:      dto.ToEmployeeResponses(employees),
+		SortDurationMS: float64(elapsed) / float64(time.Millisecond),
+	})
 }
 
 // Create

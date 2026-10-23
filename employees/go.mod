@@ -12,6 +12,7 @@ require (
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.1
 	github.com/vasmaae/distributed-computing-and-applications/common v0.0.0
+	github.com/vasmaae/distributed-computing-and-applications/mergesort v0.0.1
 	gorm.io/driver/postgres v1.6.3
 	gorm.io/gorm v1.31.2
 )
